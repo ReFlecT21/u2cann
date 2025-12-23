@@ -1,0 +1,16 @@
+{
+  "availability-zones:account=476114138908:region=ap-southeast-1": [
+    "ap-southeast-1a",
+    "ap-southeast-1b",
+    "ap-southeast-1c"
+  ],
+  "availability-zones:account=445726058518:region=ap-southeast-1": [
+    "ap-southeast-1a",
+    "ap-southeast-1b",
+    "ap-southeast-1c"
+  ],
+  "hosted-zone:account=445726058518:domainName=asiadealhub.com:region=ap-southeast-1": {
+    "Id": "/hostedzone/Z10391391DZP9RGR8XEHK",
+    "Name": "asiadealhub.com."
+  }
+}

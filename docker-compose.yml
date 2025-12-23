@@ -1,0 +1,41 @@
+services:
+  expert:
+    container_name: expert
+    build:
+      context: .
+      dockerfile: ./apps/expert/Dockerfile
+    restart: always
+    ports:
+      - 3000:8000
+    networks:
+      - adh_network
+    env_file:
+      - .env.staging
+  api:
+    container_name: api
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    restart: always
+    ports:
+      - 3001:8000
+    networks:
+      - adh_network
+    env_file:
+      - .env.staging
+  admin-api:
+    container_name: admin-api
+    build:
+      context: .
+      dockerfile: ./apps/admin-api/Dockerfile
+    restart: always
+    ports:
+      - 3002:8000
+    networks:
+      - adh_network
+    env_file:
+      - .env.staging
+
+networks:
+  adh_network:
+    driver: bridge

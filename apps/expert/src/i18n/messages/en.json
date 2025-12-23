@@ -1,0 +1,169 @@
+{
+  "branchesPage": {
+    "pageTitle": "Branches",
+    "pageSubtitle": "Total Branches: {count}",
+    "addBranch": "Add Branch",
+    "name": "Name",
+    "location": "Location",
+    "submit": "Submit",
+    "deleteSuccess": "Branch deleted successfully.",
+    "deleteError": "Failed to delete branch.",
+    "actions": "Actions",
+    "confirmDeleteTitle": "Are you sure?",
+    "confirmDeleteMessage": "This will delete the branch: {name}.",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
+  "appointmentTypesPage": {
+    "pageTitle": "Appointment Types",
+    "pageSubtitle": "Total Appointment Types: {count}",
+    "error": "An error occurred",
+    "noData": "No appointment types available",
+    "addAppointmentType": "Add Appointment Type",
+    "editAppointmentType": "Edit Appointment Type",
+    "displayName": "Display Name",
+    "duration": "Duration (minutes)",
+    "maxAppointmentCount": "Max Appointments per Clinician",
+    "gapToEarliestSlot": "Gap to Earliest Slot (minutes)",
+    "messageToInclude": "Description",
+    "submit": "Submit",
+    "update": "Update",
+    "confirmDeleteTitle": "Are you sure?",
+    "confirmDeleteMessage": "This will delete the appointment type: {name}.",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "createAccount": {
+    "createClinicTitle": "Create Your Clinic",
+    "clinicNamePlaceholder": "Enter clinic name",
+    "createClinic": "Create Clinic",
+    "creating": "Creating...",
+    "createBranchesTitle": "Set Up Branches",
+    "branchNamePlaceholder": "Branch name",
+    "branchLocationPlaceholder": "Branch location",
+    "addBranch": "Add another branch",
+    "removeBranch": "Remove branch",
+    "submitBranches": "Submit and continue",
+    "signOut": "Sign out"
+  },
+  "Layout": {
+    "section": {
+      "Management": "Management",
+      "Settings": "Settings"
+    },
+    "Management": {
+      "Overview": "Overview",
+      "Appointments": "Appointments",
+      "Availability": "Availability"
+    },
+    "UserData": {
+      "Clients": "Clients",
+      "ClientView": "View Clients",
+      "ClientCreate": "Create Client",
+      "Experts": "Experts",
+      "ExpertView": "View Experts",
+      "ExpertImport": "Import Experts"
+    },
+    "Misc": {
+      "ReferralLinks": "Referral Links"
+    },
+    "adminTitle": "Admin Panel",
+    "Settings": {
+      "AppointmentTypes": "Appointment Types",
+      "Branches": "Branches",
+      "Clinicians": "Clinicians",
+      "Exclusions": "Clinic Exclusions",
+      "Species": "Species"
+    }
+  },
+  "projectCompanyTable": {
+    "searchPlaceholder": "Search...",
+    "exportExcel": "Export to Excel",
+    "previous": "Previous",
+    "next": "Next",
+    "showingRange": "Showing {min} to {max} of {total} results",
+    "noResults": "No results found"
+  },
+  "appointments": {
+    "Time": "Time",
+    "Client": "Client",
+    "Patient": "Patient",
+    "Appointment": "Appointment",
+    "Clinician": "Clinician",
+    "Appointment Fee": "Appointment Fee",
+    "appointmentsTitle": "Appointments",
+    "totalAppointments": "Total Appointments: {count}",
+    "error": "An error occurred",
+    "noData": "No appointment data available"
+  },
+  "speciesPage": {
+    "pageTitle": "Species",
+    "pageSubtitle": "Total Species: {count}",
+    "error": "An error occurred",
+    "noData": "No species data available",
+    "importSpecies": "Add Species",
+    "selectSpeciesToAdd": "Select species to add",
+    "addSelected": "Add Selected",
+    "name": "Name",
+    "actions": "Actions",
+    "confirmDeleteTitle": "Are you sure?",
+    "confirmDeleteDescription": "This will hide the species from your active list.",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
+  "cliniciansPage": {
+    "title": "Clinicians",
+    "subtitle": "Manage your clinicians below.",
+    "newClinician": "Add Clinician",
+    "nameDisplayed": "Name & Branch",
+    "editClinician": "Edit Clinician",
+    "formDescription": "Provide details about the clinician.",
+    "email": "Email",
+    "userName": "Name",
+    "branchId": "Branch",
+    "selectBranch": "Select branch",
+    "excludedAppointmentTypes": "Excluded Appointment Types",
+    "selectAppointmentTypes": "Select appointment types",
+    "excludedSpecies": "Excluded Species",
+    "selectSpecies": "Select species",
+    "create": "Create",
+    "update": "Update",
+    "confirmDeleteTitle": "Are you sure?",
+    "confirmDeleteMessage": "This will delete the clinician: {name}.",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "toast": {
+      "created": {
+        "title": "Success",
+        "description": "Clinician created successfully."
+      },
+      "updated": {
+        "title": "Updated",
+        "description": "Clinician updated successfully."
+      },
+      "deleted": {
+        "title": "Deleted",
+        "description": "Clinician deleted successfully."
+      },
+      "error": {
+        "title": "Error",
+        "description": "An error occurred. Please try again."
+      }
+    },
+    "none": "None",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "navUser": {
+    "dark": "Dark",
+    "light": "Light",
+    "mode": "mode",
+    "accountSettings": "Account Settings",
+    "orgSettings": "Organization Settings",
+    "logout": "Sign out"
+  }
+}

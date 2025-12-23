@@ -1,0 +1,74 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" version="25.0.3">
+  <diagram name="Page-1" id="dYp46wsLx34couElQSMZ">
+    <mxGraphModel dx="760" dy="507" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="fHC3OLp_hWLI4e7Llt2S-1" value="" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="280" width="520" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="fHC3OLp_hWLI4e7Llt2S-2" value="&lt;span style=&quot;text-wrap-mode: nowrap;&quot;&gt;[Web]&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;text-wrap-mode: nowrap;&quot;&gt;asiadealhub.com&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="70" y="310" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fHC3OLp_hWLI4e7Llt2S-3" value="ADH" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="275" y="280" width="50" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="fHC3OLp_hWLI4e7Llt2S-5" value="&lt;span style=&quot;text-wrap-mode: nowrap;&quot;&gt;[Expert]&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;text-wrap-mode: nowrap;&quot;&gt;app.asiadealhub.com&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="70" y="370" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fHC3OLp_hWLI4e7Llt2S-6" value="&lt;span style=&quot;text-wrap-mode: nowrap;&quot;&gt;[CMS]&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;text-wrap-mode: nowrap;&quot;&gt;cms.asiadealhub.com&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="70" y="430" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uWzZ2Ah5uzyqlKWddyko-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="fHC3OLp_hWLI4e7Llt2S-7" target="uWzZ2Ah5uzyqlKWddyko-3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="315" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fHC3OLp_hWLI4e7Llt2S-7" value="&lt;span style=&quot;text-wrap-mode: nowrap;&quot;&gt;[SAAS]&amp;nbsp;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;text-wrap-mode: nowrap;&quot;&gt;saas.asiadealhub.com&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="70" y="490" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fHC3OLp_hWLI4e7Llt2S-8" value="[Mongo]&lt;div&gt;AWS DocumentDB&lt;/div&gt;&lt;div&gt;(migrate)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="410" y="375" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uWzZ2Ah5uzyqlKWddyko-3" value="" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;dashPattern=1 4;" vertex="1" parent="1">
+          <mxGeometry x="240" y="345" width="150" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="fHC3OLp_hWLI4e7Llt2S-14" value="[PostgreSQL]&lt;div&gt;AWS RDS&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="255" y="375" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fHC3OLp_hWLI4e7Llt2S-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="fHC3OLp_hWLI4e7Llt2S-16" target="fHC3OLp_hWLI4e7Llt2S-8" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fHC3OLp_hWLI4e7Llt2S-16" value="[Proxy]&lt;div&gt;Database Access&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="410" y="490" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uWzZ2Ah5uzyqlKWddyko-4" value="[Storage]&lt;div&gt;AWS S3&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="255" y="435" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uWzZ2Ah5uzyqlKWddyko-5" value="Data Storage" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="270" y="345" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="uWzZ2Ah5uzyqlKWddyko-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="fHC3OLp_hWLI4e7Llt2S-2" target="uWzZ2Ah5uzyqlKWddyko-3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="315" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="uWzZ2Ah5uzyqlKWddyko-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.005;entryY=0.318;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="fHC3OLp_hWLI4e7Llt2S-5" target="uWzZ2Ah5uzyqlKWddyko-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uWzZ2Ah5uzyqlKWddyko-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.001;entryY=0.688;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="fHC3OLp_hWLI4e7Llt2S-6" target="uWzZ2Ah5uzyqlKWddyko-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uWzZ2Ah5uzyqlKWddyko-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="fHC3OLp_hWLI4e7Llt2S-8">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="376" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,48 @@
+{
+  "name": "@adh/cdk",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cdk": "pnpm with-env cdk",
+    "deploy": "pnpm with-env cdk deploy",
+    "deploy:prod": "pnpm with-env-prod cdk deploy",
+    "destroy": "pnpm with-env cdk destroy",
+    "synth": "pnpm with-env cdk synth",
+    "format": "prettier --check . --ignore-path ../../.gitignore",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "with-env": "dotenv -e ../../.env.staging --",
+    "with-env-prod": "dotenv -e ../../.env.production --",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "update-secret": "pnpm with-env tsx scripts/update-secret.ts",
+    "update-secret:prod": "pnpm with-env-prod tsx scripts/update-secret.ts"
+  },
+  "dependencies": {
+    "@adh/api": "workspace:*",
+    "@adh/db": "workspace:*",
+    "@adh/expert": "workspace:*",
+    "@adh/types": "workspace:*",
+    "@aws-sdk/client-secrets-manager": "^3.525.0",
+    "@t3-oss/env-nextjs": "^0.11.1",
+    "aws-cdk-lib": "^2.131.0",
+    "aws-lambda": "^1.0.7",
+    "constructs": "^10.3.0",
+    "dotenv-cli": "^7.4.2",
+    "tsx": "^4.19.2",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@adh/eslint-config": "workspace:*",
+    "@adh/prettier-config": "workspace:*",
+    "@adh/tsconfig": "workspace:*",
+    "@types/aws-lambda": "^8.10.146",
+    "@types/node": "^20.16.5",
+    "aws-cdk": "^2.131.0",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "ts-node": "^10.9.2",
+    "typescript": "catalog:"
+  },
+  "prettier": "@adh/prettier-config"
+}

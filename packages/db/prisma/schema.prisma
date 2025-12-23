@@ -1,0 +1,454 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl", "rhel-openssl-1.1.x"]
+  engineType = "library"  // Explicitly set the engine type
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_URL")
+}
+
+enum Role {
+  admin
+  clinician
+  receptionist
+  customer
+}
+
+enum AppointmentStatus {
+  scheduled
+  cancelled
+  completed
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  NO_SHOW
+}
+
+enum AppointmentTypeName {
+  consultation
+  vaccination
+  checkup
+  surgery
+  dental_cleaning
+  grooming
+  emergency
+  follow_up
+  spay_neuter
+  microchipping
+  blood_work
+  x_ray
+  ultrasound
+}
+
+// ======================
+// Veterinary Booking Platform Models
+// ======================
+
+model user {
+  id          String   @id // clerkId will be used as the primary key
+  email       String   @unique
+  name        String?
+  firstName   String?
+  lastName    String?
+  phone       String?
+  avatar      String?
+  role        Role     @default(customer)
+  teamId      String?
+  team        team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime? @updatedAt
+
+  clinicians   clinician[]
+  pets         pet[]
+  appointments appointment[]
+  messages     message[]
+  favorites    favorite[]
+  reviews      review[]
+}
+
+model team {
+  id               String            @id @default(cuid())
+  name             String
+  users            user[]
+  branches         branch[]
+  clinicExclusions clinicExclusion[]
+  vetClinics       vetClinic[]
+  createdAt        DateTime          @default(now())
+}
+
+model clinician {
+  id        String   @id @default(cuid())
+  userId    String
+  user      user  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branchId  String
+  branch    branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  specialty String?
+  createdAt DateTime @default(now())
+
+  availabilityGroups availabilityGroup[]
+  appointments appointment[]
+  slotExclusions slotExclusion[]
+  appointmentTypes appointmentType[] @relation("ClinicianAppointmentTypes")
+  species          species[]         @relation("ClinicianSpecies")
+}
+
+model branch {
+  id        String   @id @default(cuid())
+  name      String
+  location  String
+  latitude  Float?
+  longitude Float?
+  teamId    String
+  team      team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  clinicians clinician[]
+  exclusions exclusion[]
+}
+
+model species {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  display      Boolean  @default(true)
+  appointments appointment[]
+  exclusions   exclusion[]
+  clinicians   clinician[] @relation("ClinicianSpecies")
+}
+
+model appointmentType {
+  id                          String              @id @default(cuid())
+  name                        AppointmentTypeName @unique
+  description                 String?
+  duration                    Int                 // in minutes
+  maxAppointmentsPerClinician Int?
+  gapToEarliestSlotMinutes    Int?
+  appointments                appointment[]
+  exclusions                  exclusion[]
+  clinicians                  clinician[] @relation("ClinicianAppointmentTypes")
+}
+
+model appointment {
+  id                 String    @id @default(cuid())
+  startTime          DateTime
+  endTime            DateTime
+  date               DateTime?  // For mobile app compatibility
+  time               String?    // For mobile app compatibility
+
+  // Customer/Mobile fields
+  customerId         String?
+  petId              String?
+  clinicId           String?    // vetClinic for mobile app
+  veterinarianId     String?
+  clinicServiceId    String?    // Reference to clinic's specific service offering
+  timeSlotId         String?
+  doctorPreference   String?
+
+  // Expert app fields
+  clinicianId        String?
+  appointmentTypeId  String?
+  speciesId          String?
+  petName            String?
+
+  notes              String?
+  status             AppointmentStatus @default(scheduled)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime? @updatedAt
+
+  // Relations
+  customer       user?            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  pet            pet?             @relation(fields: [petId], references: [id], onDelete: Cascade)
+  clinic         vetClinic?       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  veterinarian   veterinarian?    @relation(fields: [veterinarianId], references: [id])
+  clinicService  clinicService?   @relation(fields: [clinicServiceId], references: [id], onDelete: Cascade)
+  timeSlot       timeSlot?        @relation(fields: [timeSlotId], references: [id])
+  clinician      clinician?       @relation(fields: [clinicianId], references: [id])
+  appointmentType appointmentType? @relation(fields: [appointmentTypeId], references: [id])
+  species        species?         @relation(fields: [speciesId], references: [id])
+  messages       message[]
+  review         review?
+}
+
+model availabilityGroup {
+  id           String   @id @default(cuid())
+  clinicianId  String
+  name         String
+  isDefault    Boolean  @default(false)
+  timezone     String
+  createdAt    DateTime @default(now())
+
+  clinician    clinician @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+  availability availability[]
+}
+
+model availability {
+  id                 String   @id @default(cuid())
+  availabilityGroupId String
+  dayOfWeek          Int      // 0 = Sunday, 6 = Saturday
+  startTime          String   // e.g., "09:00"
+  endTime            String   // e.g., "17:00"
+  createdAt          DateTime @default(now())
+
+  availabilityGroup availabilityGroup @relation(fields: [availabilityGroupId], references: [id], onDelete: Cascade)
+}
+
+model exclusion {
+  id                String   @id @default(cuid())
+  name              String?
+  dayOfWeek         Int
+  startTime         String
+  endTime           String
+  branchId          String
+  appointmentTypeId String?
+  speciesId         String?
+  createdAt         DateTime @default(now())
+
+  branch          branch          @relation(fields: [branchId], references: [id])
+  appointmentType appointmentType? @relation(fields: [appointmentTypeId], references: [id])
+  species         species?         @relation(fields: [speciesId], references: [id])
+}
+
+model slotExclusion {
+  id          String   @id @default(cuid())
+  clinicianId String
+  date        DateTime
+  startTime   String
+  endTime     String
+  reason      String?
+  type        ExclusionType @default(other)
+  createdAt   DateTime @default(now())
+
+  clinician clinician @relation(fields: [clinicianId], references: [id], onDelete: Cascade)
+}
+
+model clinicExclusion {
+  id        String   @id @default(cuid())
+  teamId    String
+  date      DateTime
+  startTime String?  // null means all day
+  endTime   String?  // null means all day
+  reason    String?
+  type      ClinicExclusionType @default(holiday)
+  createdAt DateTime @default(now())
+
+  team team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+enum ExclusionType {
+  sick
+  vacation
+  training
+  conference
+  personal
+  maintenance
+  emergency
+  other
+}
+
+enum ClinicExclusionType {
+  holiday
+  maintenance
+  emergency
+  training
+  event
+  closure
+  other
+}
+
+model pet {
+  id        String   @id @default(cuid())
+  name      String
+  species   String   // Dog, Cat, Rabbit, etc.
+  breed     String?
+  age       Int?
+  weight    Float?
+  avatar    String?
+  userId    String   // Reference to user (customer)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user         user          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments appointment[]
+
+  @@map("pets")
+}
+
+model vetClinic {
+  id          String   @id @default(cuid())
+  name        String
+  address     String
+  phone       String?
+  email       String?
+  description String?
+  avatar      String?
+  rating      Float    @default(0.0)
+  latitude    Float?
+  longitude   Float?
+  openingTime String?  // e.g., "09:00"
+  closingTime String?  // e.g., "17:00"
+  teamId      String?  // Link to expert app team
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  team           team?           @relation(fields: [teamId], references: [id])
+  veterinarians  veterinarian[]
+  appointments   appointment[]
+  clinicServices clinicService[]
+  favorites      favorite[]
+  reviews        review[]
+  timeSlots      timeSlot[]
+
+  @@map("vet_clinics")
+}
+
+model veterinarian {
+  id          String   @id @default(cuid())
+  name        String
+  specialty   String?
+  avatar      String?
+  experience  Int?     // years of experience
+  clinicId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  clinic       vetClinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointments appointment[]
+
+  @@map("veterinarians")
+}
+
+// Predefined service types (global catalog)
+model serviceType {
+  id              String   @id @default(cuid())
+  name            String   @unique // Consultation, Vaccination, Check-up, etc.
+  description     String?
+  defaultDuration Int?     // Default duration in minutes
+  category        String?  // e.g., "Medical", "Wellness", "Grooming"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  clinicServices clinicService[]
+
+  @@map("service_types")
+}
+
+// Junction table: Clinics select which services they offer with custom pricing
+model clinicService {
+  id            String   @id @default(cuid())
+  clinicId      String
+  serviceTypeId String
+  price         Float    // Clinic-specific price
+  duration      Int?     // Clinic-specific duration (overrides default)
+  available     Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  clinic       vetClinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  serviceType  serviceType @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  appointments appointment[]
+
+  @@unique([clinicId, serviceTypeId])
+  @@map("clinic_services")
+}
+
+model timeSlot {
+  id        String   @id @default(cuid())
+  time      String   // e.g., "09:00AM"
+  period    String   // Morning, Afternoon, Night
+  available Boolean  @default(true)
+  date      DateTime
+  clinicId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  clinic       vetClinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointments appointment[]
+
+  @@map("time_slots")
+}
+
+
+model message {
+  id            String   @id @default(cuid())
+  content       String
+  senderId      String
+  receiverId    String?  // Can be clinic or user
+  appointmentId String?
+  read          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  sender      user        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  appointment appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@map("messages")
+}
+
+model favorite {
+  id       String @id @default(cuid())
+  userId   String
+  clinicId String
+
+  // Relations
+  user   user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clinic vetClinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clinicId])
+  @@map("favorites")
+}
+
+model review {
+  id            String   @id @default(cuid())
+  rating        Int      // 1-5 stars
+  comment       String?
+  userId        String
+  clinicId      String
+  appointmentId String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user        user        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clinic      vetClinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  appointment appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model article {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  excerpt     String?
+  image       String?
+  category    String   // "Pet Care", "Health Tips", etc.
+  published   Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("articles")
+}
+
+model promotion {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  image       String?
+  discount    Float?    // percentage or amount
+  validFrom   DateTime
+  validTo     DateTime
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("promotions")
+}

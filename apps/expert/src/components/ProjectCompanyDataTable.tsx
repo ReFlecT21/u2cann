@@ -1,0 +1,285 @@
+"use client";
+
+import * as React from "react";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import {
+  ColumnDef,
+  FilterFn,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  Table,
+  useReactTable,
+} from "@tanstack/react-table";
+import { ChevronDown, Download, Eye, Search, Settings } from "lucide-react";
+
+import { Button } from "@adh/ui/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@adh/ui/ui/dropdown-menu";
+import { Input } from "@adh/ui/ui/input";
+import {
+  TableBody,
+  TableCell,
+  Table as TableComponent,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@adh/ui/ui/table";
+
+import exportToExcel from "./ExportTable";
+
+export interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  onClickFunction?: (index: number) => void;
+  filterFn?: FilterFn<TData>;
+  onPageChange: (page: number, pageSize: number) => void;
+  page: number;
+  pageSize: number;
+  rowCount: number;
+}
+
+export function DataTable<TData, TValue>({
+  columns,
+  data,
+  onClickFunction,
+  filterFn,
+  onPageChange,
+  page,
+  pageSize,
+  rowCount,
+}: DataTableProps<TData, TValue>) {
+  const [globalFilter, setGlobalFilter] = useState("");
+  const pageSizes = [10, 20, 30];
+  const t = useTranslations("projectCompanyTable");
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    manualPagination: true,
+    pageCount: Math.ceil(rowCount / pageSize),
+    onPaginationChange: (pagination) => {
+      onPageChange(pagination.pageIndex + 1, pagination.pageSize);
+    },
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: filterFn || "includesString",
+    state: {
+      globalFilter,
+      pagination: {
+        pageIndex: page - 1,
+        pageSize,
+      },
+    },
+  });
+
+  // Pagination Values
+  const filteredRows = table.getFilteredRowModel().rows;
+  const totalRows = rowCount;
+  const currentMin =
+    table.getState().pagination.pageIndex *
+      table.getState().pagination.pageSize +
+    1;
+  const currentMax = Math.min(
+    (table.getState().pagination.pageIndex + 1) *
+      table.getState().pagination.pageSize,
+    totalRows,
+  );
+
+  return (
+    <>
+      <div className="flex justify-between">
+        <div className="flex flex-row items-center">
+          <Search className="mx-2" />
+          <Input
+            placeholder={t("searchPlaceholder")}
+            value={globalFilter ?? ""}
+            onChange={(e) => {
+              table.setGlobalFilter(String(e.target.value));
+            }}
+            className="max-w-sm"
+          />
+        </div>
+
+        {/* Page Size */}
+        <div className="flex justify-end space-x-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Settings size={15} /> <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {pageSizes.map((size) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={size}
+                    className="capitalize"
+                    checked={table.getState().pagination.pageSize === size}
+                    onCheckedChange={() => {
+                      table.setPageSize(size);
+                      onPageChange(1, size); // Reset to page 1 when page size changes
+                    }}
+                  >
+                    {size}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Show/Hide Dropdown Columns */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Eye size={15} /> <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {column.id}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download size={15} /> <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem
+                onClick={() =>
+                  exportToExcel(table as unknown as Table<object>, "table")
+                }
+              >
+                {t("exportExcel")}
+              </DropdownMenuItem>
+              {/* <DropdownMenuItem
+                onClick={() => exportToPdf(table as unknown as Table<object>)}
+              >
+                Export to PDF
+              </DropdownMenuItem> */}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="mt-4 rounded-md border">
+        <TableComponent>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id} style={{ textAlign: "center" }}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  className="h-16 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900"
+                  onClick={() => onClickFunction?.(row.index)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} style={{ textAlign: "center" }}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                 	{t("noResults")}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </TableComponent>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-start space-x-2 py-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              table.previousPage();
+              onPageChange(
+                table.getState().pagination.pageIndex,
+                table.getState().pagination.pageSize,
+              );
+            }}
+            disabled={!table.getCanPreviousPage()}
+          >
+            {	t("previous")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              table.nextPage();
+              onPageChange(
+                table.getState().pagination.pageIndex + 2,
+                table.getState().pagination.pageSize,
+              );
+            }}
+            disabled={!table.getCanNextPage()}
+          >
+            {	t("next")}
+          </Button>
+        </div>
+        <div className="text-sm text-muted-foreground">
+        {t("showingRange", { min: currentMin, max: currentMax, total: totalRows })}
+        </div>
+      </div>
+    </>
+  );
+}

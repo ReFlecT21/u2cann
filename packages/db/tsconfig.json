@@ -1,0 +1,5 @@
+{
+  "extends": "@adh/tsconfig/internal-package.json",
+  "include": ["src", "env.ts"],
+  "exclude": ["node_modules"]
+}
