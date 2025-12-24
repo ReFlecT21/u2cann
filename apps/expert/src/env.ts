@@ -45,5 +45,8 @@ export const env = createEnv({
     GOOGLE_TRANSLATE_API_KEY:
       process.env.GOOGLE_TRANSLATE_API_KEY,
   },
-  skipValidation: process.env.npm_lifecycle_event === "lint",
+  skipValidation:
+    !!process.env.SKIP_ENV_VALIDATION ||
+    process.env.npm_lifecycle_event === "lint" ||
+    !!process.env.CI,
 });
