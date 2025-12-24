@@ -22,6 +22,7 @@
     "studio": "pnpm with-env prisma studio",
     "sync": "pnpm with-env prisma generate",
     "seed": "pnpm with-env tsx prisma/seed.ts",
+    "seed:gym": "pnpm with-env tsx prisma/seed-gym.ts",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "with-env": "dotenv -e ../../.env --",
     "postinstall": "pnpm sync"

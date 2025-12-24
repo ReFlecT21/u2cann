@@ -36,19 +36,6 @@
     "edit": "Edit",
     "delete": "Delete"
   },
-  "createAccount": {
-    "createClinicTitle": "Create Your Clinic",
-    "clinicNamePlaceholder": "Enter clinic name",
-    "createClinic": "Create Clinic",
-    "creating": "Creating...",
-    "createBranchesTitle": "Set Up Branches",
-    "branchNamePlaceholder": "Branch name",
-    "branchLocationPlaceholder": "Branch location",
-    "addBranch": "Add another branch",
-    "removeBranch": "Remove branch",
-    "submitBranches": "Submit and continue",
-    "signOut": "Sign out"
-  },
   "Layout": {
     "section": {
       "Management": "Management",
@@ -56,8 +43,8 @@
     },
     "Management": {
       "Overview": "Overview",
-      "Appointments": "Appointments",
-      "Availability": "Availability"
+      "Schedule": "Schedule",
+      "Bookings": "Bookings"
     },
     "UserData": {
       "Clients": "Clients",
@@ -72,11 +59,10 @@
     },
     "adminTitle": "Admin Panel",
     "Settings": {
-      "AppointmentTypes": "Appointment Types",
+      "ClassTypes": "Class Types",
+      "Instructors": "Instructors",
       "Branches": "Branches",
-      "Clinicians": "Clinicians",
-      "Exclusions": "Clinic Exclusions",
-      "Species": "Species"
+      "GymClosures": "Gym Closures"
     }
   },
   "projectCompanyTable": {
@@ -165,5 +151,201 @@
     "accountSettings": "Account Settings",
     "orgSettings": "Organization Settings",
     "logout": "Sign out"
+  },
+  "classTypesPage": {
+    "pageTitle": "Class Types",
+    "pageSubtitle": "Total Class Types: {count}",
+    "addClassType": "Add Class Type",
+    "editClassType": "Edit Class Type",
+    "name": "Name",
+    "displayName": "Display Name",
+    "description": "Description",
+    "duration": "Duration (minutes)",
+    "defaultCapacity": "Default Capacity",
+    "isOpenGym": "Open Gym",
+    "color": "Color",
+    "submit": "Submit",
+    "update": "Update",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirmDeleteTitle": "Are you sure?",
+    "confirmDeleteMessage": "This will delete the class type: {name}.",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "error": "An error occurred",
+    "noData": "No class types available",
+    "toast": {
+      "created": {
+        "title": "Success",
+        "description": "Class type created successfully."
+      },
+      "updated": {
+        "title": "Updated",
+        "description": "Class type updated successfully."
+      },
+      "deleted": {
+        "title": "Deleted",
+        "description": "Class type deleted successfully."
+      },
+      "error": {
+        "title": "Error",
+        "description": "An error occurred. Please try again."
+      }
+    }
+  },
+  "instructorsPage": {
+    "pageTitle": "Instructors",
+    "pageSubtitle": "Total Instructors: {count}",
+    "addInstructor": "Add Instructor",
+    "editInstructor": "Edit Instructor",
+    "name": "Name",
+    "email": "Email",
+    "branch": "Branch",
+    "specialty": "Specialty",
+    "bio": "Bio",
+    "selectBranch": "Select branch",
+    "submit": "Submit",
+    "update": "Update",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirmDeleteTitle": "Are you sure?",
+    "confirmDeleteMessage": "This will delete the instructor: {name}.",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "error": "An error occurred",
+    "noData": "No instructors available",
+    "toast": {
+      "created": {
+        "title": "Success",
+        "description": "Instructor created successfully."
+      },
+      "updated": {
+        "title": "Updated",
+        "description": "Instructor updated successfully."
+      },
+      "deleted": {
+        "title": "Deleted",
+        "description": "Instructor deleted successfully."
+      },
+      "error": {
+        "title": "Error",
+        "description": "An error occurred. Please try again."
+      }
+    }
+  },
+  "schedulePage": {
+    "pageTitle": "Class Schedule",
+    "pageSubtitle": "Manage class sessions and templates",
+    "tabs": {
+      "sessions": "Sessions",
+      "templates": "Templates"
+    },
+    "sessions": {
+      "addSession": "Add Session",
+      "editSession": "Edit Session",
+      "classType": "Class Type",
+      "instructor": "Instructor",
+      "branch": "Branch",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "capacity": "Capacity",
+      "bookedCount": "Booked",
+      "status": "Status",
+      "notes": "Notes",
+      "cancelled": "Cancelled",
+      "active": "Active",
+      "generateSessions": "Generate from Templates",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "generate": "Generate",
+      "cancelSession": "Cancel Session",
+      "cancelReason": "Cancel Reason"
+    },
+    "templates": {
+      "addTemplate": "Add Template",
+      "editTemplate": "Edit Template",
+      "dayOfWeek": "Day of Week",
+      "isActive": "Active",
+      "days": {
+        "0": "Sunday",
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday"
+      }
+    },
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "submit": "Submit",
+    "update": "Update",
+    "confirmDeleteTitle": "Are you sure?",
+    "confirmDeleteMessage": "This action cannot be undone.",
+    "error": "An error occurred",
+    "noData": "No data available",
+    "toast": {
+      "created": {
+        "title": "Success",
+        "description": "Created successfully."
+      },
+      "updated": {
+        "title": "Updated",
+        "description": "Updated successfully."
+      },
+      "deleted": {
+        "title": "Deleted",
+        "description": "Deleted successfully."
+      },
+      "generated": {
+        "title": "Sessions Generated",
+        "description": "Created {count} sessions from templates."
+      },
+      "error": {
+        "title": "Error",
+        "description": "An error occurred. Please try again."
+      }
+    }
+  },
+  "bookingsPage": {
+    "pageTitle": "Bookings",
+    "pageSubtitle": "Total Bookings: {count}",
+    "guestName": "Guest Name",
+    "guestEmail": "Guest Email",
+    "guestPhone": "Phone",
+    "session": "Class Session",
+    "status": "Status",
+    "confirmationCode": "Confirmation Code",
+    "createdAt": "Booked At",
+    "actions": "Actions",
+    "view": "View",
+    "cancel": "Cancel Booking",
+    "statuses": {
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "no_show": "No Show",
+      "completed": "Completed"
+    },
+    "confirmCancelTitle": "Cancel Booking?",
+    "confirmCancelMessage": "This will cancel the booking for {name}.",
+    "close": "Close",
+    "confirm": "Confirm",
+    "error": "An error occurred",
+    "noData": "No bookings available",
+    "toast": {
+      "cancelled": {
+        "title": "Cancelled",
+        "description": "Booking cancelled successfully."
+      },
+      "error": {
+        "title": "Error",
+        "description": "An error occurred. Please try again."
+      }
+    }
   }
 }

@@ -3,6 +3,7 @@ import { registrationRouter } from "./routes/registration/router";
 import { systemRouter } from "./routes/system/router";
 import { userRouter } from "./routes/user/router";
 import { mobileRouter } from "./routes/mobile/router";
+import { gymRouter } from "./routes/gym/router";
 
 /**
  * This is the primary router for your server.
@@ -22,6 +23,9 @@ export const appRouter = createTRPCRouter({
 
   // Mobile App APIs
   mobile: mobileRouter,
+
+  // Boxing Gym APIs
+  gym: gymRouter,
 });
 
 // export type definition of API

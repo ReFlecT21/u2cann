@@ -12,19 +12,16 @@ const routes = {
   public: createRouteMatcher([
     "/:locale?/",
     "/:locale?/health",
+    "/:locale?/schedule",
+    "/:locale?/schedule/(.*)",
     env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
     "/:locale?/sign-up",
   ]),
-  createAccount: createRouteMatcher([
-    "/:locale?/create-account",
-    "/:locale?/create-account/(.*)",
-  ]),
   settings: createRouteMatcher([
-    "/:locale?/appointment-types(.*)",
+    "/:locale?/gym/classes(.*)",
+    "/:locale?/gym/instructors(.*)",
     "/:locale?/branches(.*)",
-    "/:locale?/clinicians(.*)",
     "/:locale?/exclusions(.*)",
-    "/:locale?/species(.*)",
   ]),
 };
 
@@ -32,10 +29,9 @@ const routes = {
 function getRouteType(req: NextRequest) {
   if (routes.api(req)) return "api";
   if (routes.public(req)) return "public";
-  if (routes.createAccount(req)) return "createAccount";
   if (routes.settings(req)) return "settings";
 
-  return "public"; // Default to public
+  return "protected"; // Default to protected (requires auth)
 }
 
 export default clerkMiddleware(async (auth, req) => {
@@ -73,46 +69,6 @@ export default clerkMiddleware(async (auth, req) => {
       } catch {
         // ignore
       }
-      // Ensure DB user gets merged to Clerk ID on first authenticated request
-      try {
-        console.log("[middleware] calling /api/internal/merge-user");
-        const mergeResp = await fetch(
-          new URL(`/api/internal/merge-user`, origin),
-          {
-            method: "POST",
-            headers: { cookie: req.headers.get("cookie") ?? "" },
-            cache: "no-store",
-          },
-        );
-        console.log("[middleware] merge-user status", mergeResp.status);
-      } catch {
-        // ignore merge failures; the merge can occur later
-        console.log("[middleware] merge-user failed");
-      }
-
-      // Server-side onboarding gate. If user already exists in our DB (by id/email), skip create-account.
-      try {
-        console.log("[middleware] calling /api/internal/onboarding");
-        const resp = await fetch(new URL(`/api/internal/onboarding`, origin), {
-          headers: { cookie: req.headers.get("cookie") ?? "" },
-          cache: "no-store",
-        });
-        const data = (await resp.json()) as { needsSetup: boolean };
-        console.log("[middleware] onboarding result", data);
-        const isCreateAccountPath =
-          req.nextUrl.pathname.includes("create-account");
-        if (data.needsSetup && !isCreateAccountPath) {
-          const target = new URL(`/create-account`, origin);
-          console.log(
-            "[middleware] redirect -> create-account",
-            target.toString(),
-          );
-          return NextResponse.redirect(target);
-        }
-      } catch {
-        // ignore onboarding check failures
-        console.log("[middleware] onboarding check failed");
-      }
       // Redirect logged-in users from `/` to `/{locale}/overview`
       if (req.nextUrl.pathname === "/") {
         const target = new URL(`/${matchedLang}/overview`, origin);
@@ -132,26 +88,8 @@ export default clerkMiddleware(async (auth, req) => {
     );
   }
 
-  // Guard settings pages: admin-only using DB-backed endpoint
-  // Temporarily disabled - allow anyone to access settings pages
-  // if (routeType === "settings") {
-  //   try {
-  //     const resp = await fetch(new URL(`/api/internal/is-admin`, origin), {
-  //       headers: { cookie: req.headers.get("cookie") ?? "" },
-  //       cache: "no-store",
-  //     });
-  //     const { isAdmin } = (await resp.json()) as { isAdmin: boolean };
-  //     if (!isAdmin) {
-  //       const locale =
-  //         req.nextUrl.pathname.split("/")[1] || i18nConfig.defaultLocale;
-  //       return NextResponse.redirect(new URL(`/${locale}/overview`, origin));
-  //     }
-  //   } catch {
-  //     const locale =
-  //       req.nextUrl.pathname.split("/")[1] || i18nConfig.defaultLocale;
-  //     return NextResponse.redirect(new URL(`/${locale}/overview`, origin));
-  //   }
-  // }
+  // All authenticated requests can proceed
+  return NextResponse.next();
 });
 
 export const config = {

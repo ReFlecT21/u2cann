@@ -3,15 +3,12 @@
 import { useUser } from "@clerk/nextjs";
 import {
   Building2,
-  FileText,
-  Handshake,
   LayoutDashboard,
-  Link,
-  ScrollText,
-  UserRound,
-  UsersRound,
+  Calendar,
+  Users,
+  Dumbbell,
+  ClipboardList,
   CalendarDays,
-  Dog,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { SidebarData } from "@adh/ui/custom/layout/app-sidebar";
@@ -59,15 +56,15 @@ export default function ClientLayoutWrapper({
       },
       {
         isCollapsible: false,
-        title: t("Management.Appointments"),
-        url: `/${locale}/appointments`,
-        icon: Handshake,
+        title: t("Management.Schedule"),
+        url: `/${locale}/gym/schedule`,
+        icon: Calendar,
       },
       {
         isCollapsible: false,
-        title: t("Management.Availability"),
-        url: `/${locale}/availability`,
-        icon: ScrollText,
+        title: t("Management.Bookings"),
+        url: `/${locale}/gym/bookings`,
+        icon: ClipboardList,
       },
     ],
     ...(isAdminUser
@@ -75,9 +72,15 @@ export default function ClientLayoutWrapper({
           [t("section.Settings")]: [
             {
               isCollapsible: false,
-              title: t("Settings.AppointmentTypes"),
-              url: `/${locale}/appointment-types`,
-              icon: FileText,
+              title: t("Settings.ClassTypes"),
+              url: `/${locale}/gym/classes`,
+              icon: Dumbbell,
+            },
+            {
+              isCollapsible: false,
+              title: t("Settings.Instructors"),
+              url: `/${locale}/gym/instructors`,
+              icon: Users,
             },
             {
               isCollapsible: false,
@@ -87,21 +90,9 @@ export default function ClientLayoutWrapper({
             },
             {
               isCollapsible: false,
-              title: t("Settings.Clinicians"),
-              url: `/${locale}/clinicians`,
-              icon: UserRound,
-            },
-            {
-              isCollapsible: false,
-              title: t("Settings.Exclusions"),
+              title: t("Settings.GymClosures"),
               url: `/${locale}/exclusions`,
               icon: CalendarDays,
-            },
-            {
-              isCollapsible: false,
-              title: t("Settings.Species"),
-              url: `/${locale}/species`,
-              icon: Dog,
             },
           ],
         }

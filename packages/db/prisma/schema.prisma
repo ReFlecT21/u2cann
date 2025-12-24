@@ -16,6 +16,13 @@ enum Role {
   customer
 }
 
+enum BookingStatus {
+  confirmed
+  cancelled
+  no_show
+  completed
+}
+
 enum AppointmentStatus {
   scheduled
   cancelled
@@ -60,12 +67,14 @@ model user {
   createdAt   DateTime @default(now())
   updatedAt   DateTime? @updatedAt
 
-  clinicians   clinician[]
-  pets         pet[]
-  appointments appointment[]
-  messages     message[]
-  favorites    favorite[]
-  reviews      review[]
+  clinicians    clinician[]
+  pets          pet[]
+  appointments  appointment[]
+  messages      message[]
+  favorites     favorite[]
+  reviews       review[]
+  instructors   Instructor[]
+  classBookings ClassBooking[]
 }
 
 model team {
@@ -75,6 +84,7 @@ model team {
   branches         branch[]
   clinicExclusions clinicExclusion[]
   vetClinics       vetClinic[]
+  gymClassTypes    GymClassType[]
   createdAt        DateTime          @default(now())
 }
 
@@ -104,8 +114,10 @@ model branch {
   team      team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
-  clinicians clinician[]
-  exclusions exclusion[]
+  clinicians    clinician[]
+  exclusions    exclusion[]
+  instructors   Instructor[]
+  classSessions ClassSession[]
 }
 
 model species {
@@ -451,4 +463,115 @@ model promotion {
   updatedAt   DateTime  @updatedAt
 
   @@map("promotions")
+}
+
+// ======================
+// Boxing Gym Booking Platform Models
+// ======================
+
+model GymClassType {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  displayName     String
+  description     String?
+  duration        Int      // minutes
+  defaultCapacity Int      @default(12)
+  isOpenGym       Boolean  @default(false)
+  color           String?  // hex for UI
+  teamId          String
+  team            team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  sessions        ClassSession[]
+  templates       ClassTemplate[]
+
+  @@map("gym_class_types")
+}
+
+model Instructor {
+  id          String   @id @default(cuid())
+  name        String
+  userId      String?
+  user        user?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  branchId    String
+  branch      branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  specialty   String?
+  bio         String?
+  avatar      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sessions    ClassSession[]
+  templates   ClassTemplate[]
+
+  @@map("instructors")
+}
+
+model ClassSession {
+  id            String        @id @default(cuid())
+  classTypeId   String
+  classType     GymClassType  @relation(fields: [classTypeId], references: [id], onDelete: Cascade)
+  instructorId  String
+  instructor    Instructor    @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  branchId      String
+  branch        branch        @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  startTime     DateTime
+  endTime       DateTime
+  capacity      Int
+  bookedCount   Int           @default(0)
+  templateId    String?
+  template      ClassTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  isCancelled   Boolean       @default(false)
+  cancelReason  String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  bookings      ClassBooking[]
+
+  @@index([startTime])
+  @@index([branchId, startTime])
+  @@map("class_sessions")
+}
+
+model ClassBooking {
+  id               String        @id @default(cuid())
+  sessionId        String
+  session          ClassSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  guestName        String
+  guestEmail       String
+  guestPhone       String?
+  userId           String?
+  user             user?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status           BookingStatus @default(confirmed)
+  confirmationCode String        @unique @default(cuid())
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([sessionId, guestEmail])
+  @@index([guestEmail])
+  @@index([confirmationCode])
+  @@map("class_bookings")
+}
+
+model ClassTemplate {
+  id            String       @id @default(cuid())
+  classTypeId   String
+  classType     GymClassType @relation(fields: [classTypeId], references: [id], onDelete: Cascade)
+  instructorId  String
+  instructor    Instructor   @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  branchId      String
+  dayOfWeek     Int          // 0=Sunday, 1=Monday...
+  startTime     String       // "09:00" 24h format
+  endTime       String
+  capacity      Int
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  sessions      ClassSession[]
+
+  @@map("class_templates")
 }
