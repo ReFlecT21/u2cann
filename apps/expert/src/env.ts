@@ -28,6 +28,8 @@ export const env = createEnv({
     NEXT_PUBLIC_BASE_DOMAIN: z.string(),
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
     NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string(),
+    // Stripe publishable key (optional until configured)
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   },
   runtimeEnv: {
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
@@ -50,6 +52,8 @@ export const env = createEnv({
     // Stripe
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   },
   skipValidation:
     !!process.env.SKIP_ENV_VALIDATION ||
