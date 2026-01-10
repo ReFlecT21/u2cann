@@ -7,8 +7,8 @@ import { Loader2 } from "lucide-react";
 import MainProviders from "./_mainProviders";
 
 export const metadata = {
-  title: "PawSwift Dashboard",
-  description: "Veterinary appointment management made simple with PawSwift.",
+  title: "Boxing Gym",
+  description: "Book boxing classes and manage your membership",
 };
 
 export default async function RootLayout({

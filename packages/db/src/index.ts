@@ -21,4 +21,10 @@ if (env.NEXT_PUBLIC_NODE_ENV !== "production") globalForPrisma.prisma = db;
 export { Prisma };
 
 // Export enums for use in the application
-export { AppointmentTypeName, AppointmentStatus, Role, ExclusionType, ClinicExclusionType } from "@prisma/client";
+export {
+  Role,
+  BookingStatus,
+  MembershipPlanType,
+  MembershipCategory,
+  MembershipStatus,
+} from "@prisma/client";

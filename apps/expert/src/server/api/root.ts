@@ -2,7 +2,6 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 import { registrationRouter } from "./routes/registration/router";
 import { systemRouter } from "./routes/system/router";
 import { userRouter } from "./routes/user/router";
-import { mobileRouter } from "./routes/mobile/router";
 import { gymRouter } from "./routes/gym/router";
 
 /**
@@ -20,9 +19,6 @@ export const appRouter = createTRPCRouter({
 
   // Registration
   registration: registrationRouter,
-
-  // Mobile App APIs
-  mobile: mobileRouter,
 
   // Boxing Gym APIs
   gym: gymRouter,

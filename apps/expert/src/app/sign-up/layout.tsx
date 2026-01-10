@@ -4,8 +4,8 @@ import { Suspense } from "react";
 import { GeistSans } from "geist/font/sans";
 
 export const metadata = {
-  title: "PawSwift Dashboard",
-  description: "Veterinary appointment management made simple with PawSwift.",
+  title: "Sign Up | Boxing Gym",
+  description: "Create your boxing gym account",
   icons: [{ rel: "icon", url: "/favicon.png" }],
 };
 

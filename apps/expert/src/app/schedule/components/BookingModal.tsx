@@ -1,20 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useUser, SignIn } from "@clerk/nextjs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@adh/ui/ui/dialog";
 import { Button } from "@adh/ui/ui/button";
 import { Input } from "@adh/ui/ui/input";
 import { Label } from "@adh/ui/ui/label";
 import { toast } from "@adh/ui/ui/toast";
-import { Check, Copy, Loader2, Calendar, Clock, User, Users } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Loader2,
+  Calendar,
+  Clock,
+  User,
+  Users,
+  LogIn,
+  CreditCard,
+  Infinity,
+  AlertCircle,
+} from "lucide-react";
 import { api } from "~/trpc/react";
 import { SpotsBadge } from "./SpotsBadge";
 
@@ -52,11 +66,20 @@ interface BookingModalProps {
 }
 
 export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
-  const [step, setStep] = useState<"details" | "form" | "success">("details");
+  const [step, setStep] = useState<
+    "details" | "auth" | "form" | "success"
+  >("details");
   const [confirmationCode, setConfirmationCode] = useState<string>("");
   const [copied, setCopied] = useState(false);
 
+  const { user, isSignedIn, isLoaded } = useUser();
   const utils = api.useUtils();
+
+  // Check membership status (only when signed in)
+  const { data: membership, isLoading: membershipLoading } =
+    api.gym.public.checkMembership.useQuery(undefined, {
+      enabled: isSignedIn === true,
+    });
 
   const form = useForm<BookingForm>({
     resolver: zodResolver(bookingSchema),
@@ -67,7 +90,20 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
     },
   });
 
-  const createBooking = api.gym.public.createBooking.useMutation({
+  // Pre-fill form when user is signed in
+  useEffect(() => {
+    if (isSignedIn && user) {
+      const fullName = [user.firstName, user.lastName]
+        .filter(Boolean)
+        .join(" ");
+      const email = user.primaryEmailAddress?.emailAddress || "";
+      form.setValue("guestName", fullName);
+      form.setValue("guestEmail", email);
+    }
+  }, [isSignedIn, user, form]);
+
+  // Guest booking mutation
+  const createGuestBooking = api.gym.public.createBooking.useMutation({
     onSuccess: (data) => {
       setConfirmationCode(data.confirmationCode);
       setStep("success");
@@ -79,6 +115,21 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
     },
   });
 
+  // Authenticated booking mutation
+  const createAuthBooking =
+    api.gym.public.createAuthenticatedBooking.useMutation({
+      onSuccess: (data) => {
+        setConfirmationCode(data.confirmationCode);
+        setStep("success");
+        toast.success("Booking confirmed!");
+        utils.gym.public.getWeeklySchedule.invalidate();
+        utils.gym.public.checkMembership.invalidate();
+      },
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    });
+
   const handleClose = () => {
     setStep("details");
     form.reset();
@@ -88,12 +139,29 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
   };
 
   const handleBook = () => {
+    if (isSignedIn && membership?.isValid) {
+      // User is signed in with valid membership - book directly
+      if (!session) return;
+      createAuthBooking.mutate({
+        sessionId: session.id,
+        notes: "",
+      });
+    } else if (isSignedIn && !membership?.isValid) {
+      // User is signed in but no valid membership - show error
+      toast.error("You need an active membership to book classes.");
+    } else {
+      // Not signed in - show auth step
+      setStep("auth");
+    }
+  };
+
+  const handleGuestBooking = () => {
     setStep("form");
   };
 
   const onSubmit = (data: BookingForm) => {
     if (!session) return;
-    createBooking.mutate({
+    createGuestBooking.mutate({
       sessionId: session.id,
       ...data,
     });
@@ -127,17 +195,63 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
     });
   };
 
+  const isPending =
+    createGuestBooking.isPending || createAuthBooking.isPending;
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {step === "success" ? "Booking Confirmed!" : session.classType.displayName}
+            {step === "success"
+              ? "Booking Confirmed!"
+              : step === "auth"
+                ? "Sign In to Book"
+                : session.classType.displayName}
           </DialogTitle>
+          {step === "auth" && (
+            <DialogDescription>
+              Sign in with your membership to book this class
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         {step === "details" && (
           <div className="space-y-4">
+            {/* Membership Status for signed-in users */}
+            {isSignedIn && isLoaded && (
+              <div className="border rounded-lg p-3 bg-gray-50">
+                {membershipLoading ? (
+                  <div className="animate-pulse h-6 bg-gray-200 rounded w-32" />
+                ) : membership?.isValid ? (
+                  <div className="flex items-center gap-2">
+                    {membership.type === "subscription" ? (
+                      <>
+                        <Infinity className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-700">
+                          Unlimited membership active
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-700">
+                          {membership.sessionsRemaining} sessions remaining
+                        </span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-700">
+                      No active membership
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Session Details */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-gray-600">
@@ -179,12 +293,78 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
               </Button>
               <Button
                 onClick={handleBook}
-                disabled={isFull}
+                disabled={isFull || isPending}
                 className="flex-1"
               >
-                {isFull ? "Class Full" : "Book Now"}
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Booking...
+                  </>
+                ) : isFull ? (
+                  "Class Full"
+                ) : isSignedIn && membership?.isValid ? (
+                  "Book Now"
+                ) : (
+                  <>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Sign In to Book
+                  </>
+                )}
               </Button>
             </div>
+          </div>
+        )}
+
+        {step === "auth" && (
+          <div className="space-y-4">
+            {/* Sign In Component */}
+            <div className="flex justify-center">
+              <SignIn
+                routing="hash"
+                afterSignInUrl="/schedule"
+                appearance={{
+                  elements: {
+                    rootBox: "w-full",
+                    card: "shadow-none p-0",
+                    headerTitle: "text-lg",
+                    headerSubtitle: "text-gray-500 text-sm",
+                    formButtonPrimary: "bg-gray-900 hover:bg-gray-800",
+                  },
+                }}
+              />
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500">Or</span>
+              </div>
+            </div>
+
+            {/* Guest Booking Option */}
+            <div className="text-center">
+              <Button
+                variant="outline"
+                onClick={handleGuestBooking}
+                className="w-full"
+              >
+                Continue as Guest
+              </Button>
+              <p className="mt-2 text-xs text-gray-500">
+                Book without signing in (membership not applied)
+              </p>
+            </div>
+
+            <Button
+              variant="ghost"
+              onClick={() => setStep("details")}
+              className="w-full"
+            >
+              Back
+            </Button>
           </div>
         )}
 
@@ -233,17 +413,17 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setStep("details")}
+                onClick={() => setStep("auth")}
                 className="flex-1"
               >
                 Back
               </Button>
               <Button
                 type="submit"
-                disabled={createBooking.isPending}
+                disabled={createGuestBooking.isPending}
                 className="flex-1"
               >
-                {createBooking.isPending ? (
+                {createGuestBooking.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Booking...
@@ -264,8 +444,9 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
 
             <div className="space-y-2">
               <p className="text-gray-600">
-                Your spot for <strong>{session.classType.displayName}</strong> on{" "}
-                {formatDate(session.startTime)} at {formatTime(session.startTime)} has been confirmed.
+                Your spot for <strong>{session.classType.displayName}</strong>{" "}
+                on {formatDate(session.startTime)} at{" "}
+                {formatTime(session.startTime)} has been confirmed.
               </p>
             </div>
 

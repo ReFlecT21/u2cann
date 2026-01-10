@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import { Skeleton } from "@adh/ui/ui/skeleton";
+import { Button } from "@adh/ui/ui/button";
+import { LogIn } from "lucide-react";
 import { api } from "~/trpc/react";
 import { WeeklyGrid } from "./components/WeeklyGrid";
 import { WeekNavigator } from "./components/WeekNavigator";
 import { BookingModal } from "./components/BookingModal";
+import { MembershipBadge } from "./components/MembershipBadge";
 
 // Get Monday of the current week
 function getWeekStart(date: Date = new Date()): Date {
@@ -21,6 +25,8 @@ export default function SchedulePage() {
   const [weekStart, setWeekStart] = useState(() => getWeekStart());
   const [selectedSession, setSelectedSession] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { isSignedIn, isLoaded } = useUser();
 
   const { data, isLoading, error } = api.gym.public.getWeeklySchedule.useQuery({
     weekStartDate: weekStart,
@@ -82,6 +88,42 @@ export default function SchedulePage() {
       {/* Header */}
       <header className="bg-gray-900 text-white py-6">
         <div className="max-w-7xl mx-auto px-4">
+          {/* Top Bar with Auth */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm text-gray-400">
+              Boxing Gym
+            </div>
+            <div className="flex items-center gap-4">
+              {!isLoaded ? (
+                <Skeleton className="h-8 w-24 bg-gray-700" />
+              ) : isSignedIn ? (
+                <div className="flex items-center gap-4">
+                  <MembershipBadge />
+                  <UserButton
+                    afterSignOutUrl="/schedule"
+                    appearance={{
+                      elements: {
+                        avatarBox: "w-8 h-8",
+                      },
+                    }}
+                  />
+                </div>
+              ) : (
+                <SignInButton mode="modal">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-transparent border-gray-600 text-white hover:bg-gray-800"
+                  >
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Sign In
+                  </Button>
+                </SignInButton>
+              )}
+            </div>
+          </div>
+
+          {/* Main Title */}
           <div className="text-center">
             <h1 className="text-3xl md:text-4xl font-black italic tracking-tight">
               SEE YOU THIS WEEK
@@ -137,7 +179,9 @@ export default function SchedulePage() {
       <footer className="bg-gray-900 text-white py-8 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <p className="text-gray-400 text-sm">
-            Click on any class to book your spot
+            {isSignedIn
+              ? "Click on any class to book your spot"
+              : "Sign in with your membership to book classes"}
           </p>
         </div>
       </footer>
