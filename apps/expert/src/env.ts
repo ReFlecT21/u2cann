@@ -7,16 +7,19 @@ export const env = createEnv({
   extends: [dbEnv],
   server: {
     CLERK_SECRET_KEY: z.string(),
-    AWS_REGION: z.string(),
-    S3_ACCESS_KEY_ID: z.string(),
-    S3_SECRET_ACCESS_KEY: z.string(),
-    S3_BUCKET_NAME: z.string(),
+    AWS_REGION: z.string().optional(),
+    S3_ACCESS_KEY_ID: z.string().optional(),
+    S3_SECRET_ACCESS_KEY: z.string().optional(),
+    S3_BUCKET_NAME: z.string().optional(),
     CLERK_WEBHOOK_SECRET: z.string(),
-    RESEND_API_KEY: z.string(),
-    RAPID_API_KEY: z.string(),
-    ZOOMINFO_USERNAME: z.string(),
-    ZOOMINFO_PASSWORD: z.string(),
-    GOOGLE_TRANSLATE_API_KEY: z.string(),
+    RESEND_API_KEY: z.string().optional(),
+    RAPID_API_KEY: z.string().optional(),
+    ZOOMINFO_USERNAME: z.string().optional(),
+    ZOOMINFO_PASSWORD: z.string().optional(),
+    GOOGLE_TRANSLATE_API_KEY: z.string().optional(),
+    // Stripe (optional until configured)
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().optional(),
     NEXT_PUBLIC_CDK_ENVIRONMENT: z
       .enum(["development", "production"])
       .default("production"),
@@ -44,6 +47,9 @@ export const env = createEnv({
     ZOOMINFO_PASSWORD: process.env.ZOOMINFO_PASSWORD,
     GOOGLE_TRANSLATE_API_KEY:
       process.env.GOOGLE_TRANSLATE_API_KEY,
+    // Stripe
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
   },
   skipValidation:
     !!process.env.SKIP_ENV_VALIDATION ||

@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
+import {
+  validateMembershipForBooking,
+  deductSession,
+  refundSession,
+  getUserMembershipSummary,
+} from "~/server/services/membershipService";
 
 export const publicScheduleRouter = createTRPCRouter({
   // Get weekly schedule for public display
@@ -305,6 +311,261 @@ export const publicScheduleRouter = createTRPCRouter({
           isOpenGym: true,
           color: true,
         },
+      });
+    }),
+
+  // ===== AUTHENTICATED PROCEDURES (for members) =====
+
+  // Check membership status for authenticated user
+  checkMembership: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.auth.userId;
+    return validateMembershipForBooking(userId);
+  }),
+
+  // Get membership summary for authenticated user
+  getMembershipSummary: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.auth.userId;
+    return getUserMembershipSummary(userId);
+  }),
+
+  // Create booking with membership validation (for authenticated users)
+  createAuthenticatedBooking: protectedProcedure
+    .input(
+      z.object({
+        sessionId: z.string(),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.auth.userId;
+
+      // Get user info from database
+      const user = await ctx.db.user.findUnique({
+        where: { id: userId },
+        select: { email: true, name: true, phone: true },
+      });
+
+      if (!user?.email) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "User email not found. Please update your profile.",
+        });
+      }
+
+      // Validate membership
+      const membershipCheck = await validateMembershipForBooking(userId);
+
+      if (!membershipCheck.isValid) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            membershipCheck.reason ||
+            "No active membership. Please purchase a membership to book classes.",
+        });
+      }
+
+      // Create booking within transaction
+      const result = await ctx.db.$transaction(
+        async (tx) => {
+          // Lock session for update
+          const sessions = await tx.$queryRaw<
+            Array<{
+              id: string;
+              bookedCount: number;
+              capacity: number;
+              isCancelled: boolean;
+            }>
+          >`
+            SELECT id, "bookedCount", capacity, "isCancelled"
+            FROM class_sessions
+            WHERE id = ${input.sessionId}
+            FOR UPDATE
+          `;
+
+          const session = sessions[0];
+
+          if (!session) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Session not found",
+            });
+          }
+
+          if (session.bookedCount >= session.capacity) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "This class is now full. Please try another time.",
+            });
+          }
+
+          if (session.isCancelled) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "This class has been cancelled.",
+            });
+          }
+
+          // Check for duplicate booking
+          const existingBooking = await tx.classBooking.findFirst({
+            where: {
+              sessionId: input.sessionId,
+              userId,
+              status: "confirmed",
+            },
+          });
+
+          if (existingBooking) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "You already have a booking for this class.",
+            });
+          }
+
+          // Create booking
+          const booking = await tx.classBooking.create({
+            data: {
+              sessionId: input.sessionId,
+              userId,
+              guestName: user.name || "Member",
+              guestEmail: user.email,
+              guestPhone: user.phone,
+              status: "confirmed",
+              notes: input.notes,
+            },
+          });
+
+          // Increment booked count
+          await tx.classSession.update({
+            where: { id: input.sessionId },
+            data: { bookedCount: { increment: 1 } },
+          });
+
+          return booking;
+        },
+        {
+          isolationLevel: "Serializable",
+          timeout: 10000,
+        }
+      );
+
+      // Deduct session from membership (outside transaction for proper handling)
+      await deductSession(membershipCheck.membershipId!, result.id);
+
+      // Get updated membership status
+      const updatedMembership = await validateMembershipForBooking(userId);
+
+      return {
+        success: true,
+        confirmationCode: result.confirmationCode,
+        booking: result,
+        membershipInfo: {
+          type: membershipCheck.membershipType,
+          sessionsRemaining: updatedMembership.sessionsRemaining,
+          planName: membershipCheck.planName,
+        },
+      };
+    }),
+
+  // Cancel booking with session refund (for authenticated users)
+  cancelAuthenticatedBooking: protectedProcedure
+    .input(z.object({ confirmationCode: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.auth.userId;
+
+      return ctx.db.$transaction(async (tx) => {
+        const booking = await tx.classBooking.findUnique({
+          where: { confirmationCode: input.confirmationCode },
+          include: { session: true },
+        });
+
+        if (!booking) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Booking not found",
+          });
+        }
+
+        if (booking.userId !== userId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "This is not your booking",
+          });
+        }
+
+        if (booking.status !== "confirmed") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Booking is already cancelled or completed",
+          });
+        }
+
+        // Check cancellation policy (2 hours before class)
+        const classTime = new Date(booking.session.startTime);
+        const now = new Date();
+        const hoursUntilClass =
+          (classTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+        if (hoursUntilClass < 2) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Cannot cancel within 2 hours of class start. Session will not be refunded.",
+          });
+        }
+
+        // Cancel booking
+        await tx.classBooking.update({
+          where: { id: booking.id },
+          data: { status: "cancelled" },
+        });
+
+        // Decrement booked count
+        await tx.classSession.update({
+          where: { id: booking.sessionId },
+          data: { bookedCount: { decrement: 1 } },
+        });
+
+        // Refund session to membership
+        await refundSession(booking.id);
+
+        return {
+          success: true,
+          message: "Booking cancelled and session refunded",
+        };
+      });
+    }),
+
+  // Get user's upcoming bookings
+  getMyBookings: protectedProcedure
+    .input(
+      z.object({
+        includeHistory: z.boolean().default(false),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.auth.userId;
+      const now = new Date();
+
+      return ctx.db.classBooking.findMany({
+        where: {
+          userId,
+          ...(input.includeHistory
+            ? {}
+            : {
+                session: { startTime: { gte: now } },
+                status: "confirmed",
+              }),
+        },
+        include: {
+          session: {
+            include: {
+              classType: true,
+              instructor: true,
+              branch: true,
+            },
+          },
+        },
+        orderBy: { session: { startTime: "asc" } },
       });
     }),
 });

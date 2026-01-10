@@ -14,6 +14,8 @@ const routes = {
     "/:locale?/health",
     "/:locale?/schedule",
     "/:locale?/schedule/(.*)",
+    "/api/webhooks/stripe",
+    "/api/webhooks/clerk",
     env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
     "/:locale?/sign-up",
   ]),

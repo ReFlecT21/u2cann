@@ -75,6 +75,7 @@ model user {
   reviews       review[]
   instructors   Instructor[]
   classBookings ClassBooking[]
+  memberships   UserMembership[]
 }
 
 model team {
@@ -550,6 +551,8 @@ model ClassBooking {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
+  sessionUsage     SessionUsage?
+
   @@unique([sessionId, guestEmail])
   @@index([guestEmail])
   @@index([confirmationCode])
@@ -574,4 +577,120 @@ model ClassTemplate {
   sessions      ClassSession[]
 
   @@map("class_templates")
+}
+
+// ======================
+// Membership & Stripe Integration Models
+// ======================
+
+enum MembershipPlanType {
+  FREE_TRIAL
+  // Flexi Packages
+  FLEXI_ADULT_5
+  FLEXI_ADULT_10
+  FLEXI_YOUTH_5
+  FLEXI_YOUTH_10
+  FLEXI_JUNIOR_5
+  FLEXI_JUNIOR_10
+  // Monthly - Adult
+  MONTHLY_ADULT_1YR
+  MONTHLY_ADULT_6MO
+  MONTHLY_ADULT_3MO
+  MONTHLY_ADULT
+  // Monthly - Student
+  MONTHLY_STUDENT_1YR
+  MONTHLY_STUDENT_6MO
+  MONTHLY_STUDENT_3MO
+  MONTHLY_STUDENT
+  // Monthly - NSF/NSMEN
+  MONTHLY_NSF_1YR
+  MONTHLY_NSF_6MO
+  MONTHLY_NSF_3MO
+  MONTHLY_NSF
+  // Monthly - Junior
+  MONTHLY_JUNIOR_1YR
+  MONTHLY_JUNIOR_6MO
+  MONTHLY_JUNIOR_3MO
+  MONTHLY_JUNIOR
+}
+
+enum MembershipCategory {
+  FLEXI_PACKAGE
+  MONTHLY_SUBSCRIPTION
+  TRIAL
+}
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PAUSED
+  PENDING_PAYMENT
+}
+
+model MembershipPlan {
+  id               String             @id @default(cuid())
+  planType         MembershipPlanType @unique
+  category         MembershipCategory
+  name             String
+  stripePriceId    String             @unique
+  stripeProductId  String
+  sessionsIncluded Int?               // null = unlimited
+  commitmentMonths Int?
+  priceInCents     Int
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  userMemberships  UserMembership[]
+
+  @@map("membership_plans")
+}
+
+model UserMembership {
+  id                   String           @id @default(cuid())
+  userId               String
+  user                 user             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId               String
+  plan                 MembershipPlan   @relation(fields: [planId], references: [id])
+  stripeCustomerId     String
+  stripeSubscriptionId String?
+  status               MembershipStatus @default(PENDING_PAYMENT)
+  sessionsRemaining    Int?
+  sessionsUsed         Int              @default(0)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean          @default(false)
+  commitmentEndDate    DateTime?
+  activatedAt          DateTime?
+  expiresAt            DateTime?        // Flexi expires 6 months from purchase
+  cancelledAt          DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  sessionUsages        SessionUsage[]
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@map("user_memberships")
+}
+
+model SessionUsage {
+  id           String         @id @default(cuid())
+  membershipId String
+  membership   UserMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  bookingId    String         @unique
+  booking      ClassBooking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  usedAt       DateTime       @default(now())
+
+  @@map("session_usages")
+}
+
+model StripeEvent {
+  id            String   @id @default(cuid())
+  stripeEventId String   @unique
+  type          String
+  processedAt   DateTime @default(now())
+
+  @@map("stripe_events")
 }

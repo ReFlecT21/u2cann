@@ -1,0 +1,340 @@
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+import { db } from "@adh/db";
+import { clerkClient } from "@clerk/nextjs/server";
+import { env } from "~/env";
+import {
+  getPlanFromStripeProduct,
+  getFlexiExpiryMonths,
+} from "~/config/stripe-products";
+import { mapStripeStatusToInternal } from "~/server/services/membershipService";
+
+// Initialize Stripe only if configured
+const stripe = env.STRIPE_SECRET_KEY
+  ? new Stripe(env.STRIPE_SECRET_KEY, {
+      apiVersion: "2024-12-18.acacia",
+    })
+  : null;
+
+/**
+ * Handle checkout.session.completed event
+ * This fires when a customer completes a checkout (one-time or subscription)
+ */
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const customerEmail =
+    session.customer_email || session.customer_details?.email;
+  const customerId = session.customer as string;
+  const subscriptionId = session.subscription as string | null;
+
+  if (!customerEmail) {
+    console.error("[Stripe Webhook] No customer email in checkout session");
+    return;
+  }
+
+  // Get line items to determine the product/plan
+  const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
+    expand: ["data.price.product"],
+  });
+
+  const lineItem = lineItems.data[0];
+  if (!lineItem?.price) {
+    console.error("[Stripe Webhook] No price found in checkout session");
+    return;
+  }
+
+  const product = lineItem.price.product as Stripe.Product;
+  const productId = product.id;
+  const priceId = lineItem.price.id;
+
+  const planConfig = getPlanFromStripeProduct(productId);
+  if (!planConfig) {
+    console.error(`[Stripe Webhook] Unknown Stripe product ID: ${productId}`);
+    return;
+  }
+
+  console.log(
+    `[Stripe Webhook] Processing checkout for ${customerEmail}, product: ${productId}, plan: ${planConfig.planType}`
+  );
+
+  // Step 1: Find or create Clerk user
+  const clerkUser = await findOrCreateClerkUser(
+    customerEmail,
+    session.customer_details?.name
+  );
+
+  // Step 2: Ensure user exists in database
+  const dbUser = await ensureDbUser(
+    clerkUser.id,
+    customerEmail,
+    session.customer_details?.name
+  );
+
+  // Step 3: Find or create the MembershipPlan in database
+  const plan = await db.membershipPlan.upsert({
+    where: { planType: planConfig.planType },
+    update: {
+      name: planConfig.name,
+      stripePriceId: priceId,
+      stripeProductId: productId,
+    },
+    create: {
+      planType: planConfig.planType,
+      category: planConfig.category,
+      name: planConfig.name,
+      stripePriceId: priceId,
+      stripeProductId: productId,
+      sessionsIncluded: planConfig.sessionsIncluded,
+      commitmentMonths: planConfig.commitmentMonths,
+      priceInCents: planConfig.priceInCents,
+    },
+  });
+
+  // Step 4: Calculate dates based on plan type
+  const now = new Date();
+  let expiresAt: Date | null = null;
+  let currentPeriodEnd: Date | null = null;
+  let commitmentEndDate: Date | null = null;
+
+  if (planConfig.category === "FLEXI_PACKAGE" || planConfig.category === "TRIAL") {
+    // Flexi packages expire after N months
+    const expiryMonths = getFlexiExpiryMonths(planConfig);
+    expiresAt = new Date(now);
+    expiresAt.setMonth(expiresAt.getMonth() + expiryMonths);
+  }
+
+  if (planConfig.category === "MONTHLY_SUBSCRIPTION" && subscriptionId) {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+
+    if (planConfig.commitmentMonths) {
+      commitmentEndDate = new Date(now);
+      commitmentEndDate.setMonth(
+        commitmentEndDate.getMonth() + planConfig.commitmentMonths
+      );
+    }
+  }
+
+  // Step 5: Create UserMembership
+  await db.userMembership.create({
+    data: {
+      userId: dbUser.id,
+      planId: plan.id,
+      stripeCustomerId: customerId,
+      stripeSubscriptionId: subscriptionId,
+      status: "ACTIVE",
+      sessionsRemaining: planConfig.sessionsIncluded,
+      currentPeriodStart: now,
+      currentPeriodEnd,
+      commitmentEndDate,
+      activatedAt: now,
+      expiresAt,
+    },
+  });
+
+  console.log(
+    `[Stripe Webhook] Created membership for user ${dbUser.id}, plan: ${planConfig.planType}`
+  );
+}
+
+/**
+ * Handle subscription updated event
+ * Updates period dates and status
+ */
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+  const membership = await db.userMembership.findFirst({
+    where: { stripeSubscriptionId: subscription.id },
+  });
+
+  if (!membership) {
+    console.log(
+      `[Stripe Webhook] No membership found for subscription ${subscription.id}`
+    );
+    return;
+  }
+
+  await db.userMembership.update({
+    where: { id: membership.id },
+    data: {
+      currentPeriodStart: new Date(subscription.current_period_start * 1000),
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      status: mapStripeStatusToInternal(subscription.status),
+    },
+  });
+
+  console.log(
+    `[Stripe Webhook] Updated membership ${membership.id} from subscription ${subscription.id}`
+  );
+}
+
+/**
+ * Handle subscription deleted event
+ * Marks membership as cancelled
+ */
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  await db.userMembership.updateMany({
+    where: { stripeSubscriptionId: subscription.id },
+    data: {
+      status: "CANCELLED",
+      cancelledAt: new Date(),
+    },
+  });
+
+  console.log(
+    `[Stripe Webhook] Cancelled membership for subscription ${subscription.id}`
+  );
+}
+
+/**
+ * Handle invoice payment failed event
+ * Marks membership as pending payment
+ */
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+  if (!invoice.subscription) return;
+
+  await db.userMembership.updateMany({
+    where: { stripeSubscriptionId: invoice.subscription as string },
+    data: { status: "PENDING_PAYMENT" },
+  });
+
+  console.log(
+    `[Stripe Webhook] Marked membership as pending payment for subscription ${invoice.subscription}`
+  );
+}
+
+/**
+ * Find existing Clerk user or create a new one
+ */
+async function findOrCreateClerkUser(email: string, name?: string | null) {
+  const client = await clerkClient();
+
+  // Try to find existing user by email
+  const existingUsers = await client.users.getUserList({
+    emailAddress: [email],
+  });
+
+  if (existingUsers.totalCount > 0) {
+    console.log(`[Stripe Webhook] Found existing Clerk user for ${email}`);
+    return existingUsers.data[0];
+  }
+
+  // Create new user - they will sign in via OTP
+  const [firstName, ...lastNameParts] = (name || "").split(" ");
+  const lastName = lastNameParts.join(" ");
+
+  console.log(`[Stripe Webhook] Creating new Clerk user for ${email}`);
+  const newUser = await client.users.createUser({
+    emailAddress: [email],
+    firstName: firstName || undefined,
+    lastName: lastName || undefined,
+    skipPasswordRequirement: true, // Will use OTP
+  });
+
+  return newUser;
+}
+
+/**
+ * Ensure user exists in database
+ */
+async function ensureDbUser(
+  clerkId: string,
+  email: string,
+  name?: string | null
+) {
+  return db.user.upsert({
+    where: { id: clerkId },
+    update: { email, name: name || undefined },
+    create: {
+      id: clerkId,
+      email,
+      name: name || null,
+      role: "customer",
+    },
+  });
+}
+
+/**
+ * POST handler for Stripe webhooks
+ */
+export async function POST(req: NextRequest) {
+  // Check if Stripe is configured
+  if (!stripe || !env.STRIPE_WEBHOOK_SECRET) {
+    console.error("[Stripe Webhook] Stripe not configured");
+    return NextResponse.json(
+      { error: "Stripe not configured" },
+      { status: 503 }
+    );
+  }
+
+  const body = await req.text();
+  const sig = req.headers.get("stripe-signature");
+
+  if (!sig) {
+    console.error("[Stripe Webhook] No signature header");
+    return NextResponse.json({ error: "No signature" }, { status: 400 });
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(body, sig, env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error("[Stripe Webhook] Signature verification failed:", err);
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  // Idempotency check - prevent duplicate processing
+  const existingEvent = await db.stripeEvent.findUnique({
+    where: { stripeEventId: event.id },
+  });
+
+  if (existingEvent) {
+    console.log(`[Stripe Webhook] Duplicate event ${event.id}, skipping`);
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
+  // Record event for idempotency
+  await db.stripeEvent.create({
+    data: {
+      stripeEventId: event.id,
+      type: event.type,
+    },
+  });
+
+  console.log(`[Stripe Webhook] Processing event ${event.type} (${event.id})`);
+
+  // Handle events
+  try {
+    switch (event.type) {
+      case "checkout.session.completed":
+        await handleCheckoutCompleted(
+          event.data.object as Stripe.Checkout.Session
+        );
+        break;
+
+      case "customer.subscription.updated":
+        await handleSubscriptionUpdated(
+          event.data.object as Stripe.Subscription
+        );
+        break;
+
+      case "customer.subscription.deleted":
+        await handleSubscriptionDeleted(
+          event.data.object as Stripe.Subscription
+        );
+        break;
+
+      case "invoice.payment_failed":
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+
+      default:
+        console.log(`[Stripe Webhook] Unhandled event type: ${event.type}`);
+    }
+  } catch (error) {
+    console.error(`[Stripe Webhook] Error handling ${event.type}:`, error);
+    return NextResponse.json({ error: "Handler failed" }, { status: 500 });
+  }
+
+  return NextResponse.json({ received: true });
+}
