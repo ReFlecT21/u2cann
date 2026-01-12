@@ -39,8 +39,6 @@ export default function MainProviders({
   // Decide which locale to use: the cookie override or the route-based locale
   const currentLocale = (cookieLocale as Language) || routeLocale;
 
-  console.log("Current locale:lol", currentLocale);
-
   return (
     <ThemeProvider
       attribute="class"

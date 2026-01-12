@@ -2,10 +2,10 @@
 
 import { useUser } from "@clerk/nextjs";
 import {
-  Building2,
   LayoutDashboard,
   Calendar,
   Users,
+  Users2,
   Dumbbell,
   ClipboardList,
   CalendarDays,
@@ -33,7 +33,9 @@ export default function ClientLayoutWrapper({
     api.registration.expert.createExpertAccount.useMutation();
   const t = useTranslations("Layout");
   const locale = useCurrentLocale(i18nConfig);
-  const { data: isAdminUser } = api.user.account.isUserInAdminOrg.useQuery();
+  const { data: userRole } = api.user.account.getMyRole.useQuery();
+  const isAdminUser = userRole === "admin";
+  const isCoachUser = userRole === "coach";
 
   if (!user) {
     return (
@@ -50,22 +52,36 @@ export default function ClientLayoutWrapper({
     [t("section.Management")]: [
       {
         isCollapsible: false,
-        title: t("Management.Overview"),
-        url: `/${locale}/overview`,
+        title: "Dashboard",
+        url: `/${locale}/gym/dashboard`,
         icon: LayoutDashboard,
       },
-      {
-        isCollapsible: false,
-        title: t("Management.Schedule"),
-        url: `/${locale}/gym/schedule`,
-        icon: Calendar,
-      },
+      ...(isAdminUser
+        ? [
+            {
+              isCollapsible: false,
+              title: t("Management.Schedule"),
+              url: `/${locale}/gym/schedule`,
+              icon: Calendar,
+            },
+          ]
+        : []),
       {
         isCollapsible: false,
         title: t("Management.Bookings"),
         url: `/${locale}/gym/bookings`,
         icon: ClipboardList,
       },
+      ...(isAdminUser
+        ? [
+            {
+              isCollapsible: false,
+              title: "Members",
+              url: `/${locale}/gym/users`,
+              icon: Users2,
+            },
+          ]
+        : []),
     ],
     ...(isAdminUser
       ? {
@@ -81,12 +97,6 @@ export default function ClientLayoutWrapper({
               title: t("Settings.Instructors"),
               url: `/${locale}/gym/instructors`,
               icon: Users,
-            },
-            {
-              isCollapsible: false,
-              title: t("Settings.Branches"),
-              url: `/${locale}/branches`,
-              icon: Building2,
             },
             {
               isCollapsible: false,

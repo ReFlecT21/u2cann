@@ -56,10 +56,6 @@ interface BookingModalProps {
     instructor: {
       name: string;
     };
-    branch: {
-      name: string;
-      location: string;
-    };
   } | null;
   isOpen: boolean;
   onClose: () => void;

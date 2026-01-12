@@ -15,8 +15,8 @@ datasource db {
 
 enum Role {
   admin
-  staff
-  customer
+  coach
+  trainee
 }
 
 enum BookingStatus {
@@ -31,46 +31,20 @@ enum BookingStatus {
 // ======================
 
 model user {
-  id          String   @id // clerkId will be used as the primary key
-  email       String   @unique
-  name        String?
-  firstName   String?
-  lastName    String?
-  phone       String?
-  avatar      String?
-  role        Role     @default(customer)
-  teamId      String?
-  team        team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime? @updatedAt
+  id        String    @id // clerkId will be used as the primary key
+  email     String    @unique
+  name      String?
+  firstName String?
+  lastName  String?
+  phone     String?
+  avatar    String?
+  role      Role      @default(trainee)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
 
-  instructors   Instructor[]
+  instructor    Instructor?
   classBookings ClassBooking[]
   memberships   UserMembership[]
-}
-
-model team {
-  id            String         @id @default(cuid())
-  name          String
-  users         user[]
-  branches      branch[]
-  gymClassTypes GymClassType[]
-  closures      GymClosure[]
-  createdAt     DateTime       @default(now())
-}
-
-model branch {
-  id        String   @id @default(cuid())
-  name      String
-  location  String
-  latitude  Float?
-  longitude Float?
-  teamId    String
-  team      team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  instructors   Instructor[]
-  classSessions ClassSession[]
 }
 
 // ======================
@@ -86,8 +60,6 @@ model GymClassType {
   defaultCapacity Int      @default(12)
   isOpenGym       Boolean  @default(false)
   color           String?  // hex for UI
-  teamId          String
-  team            team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -100,10 +72,8 @@ model GymClassType {
 model Instructor {
   id        String   @id @default(cuid())
   name      String
-  userId    String?
+  userId    String?  @unique
   user      user?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  branchId  String
-  branch    branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
   specialty String?
   bio       String?
   avatar    String?
@@ -122,8 +92,6 @@ model ClassSession {
   classType    GymClassType   @relation(fields: [classTypeId], references: [id], onDelete: Cascade)
   instructorId String
   instructor   Instructor     @relation(fields: [instructorId], references: [id], onDelete: Cascade)
-  branchId     String
-  branch       branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
   startTime    DateTime
   endTime      DateTime
   capacity     Int
@@ -139,7 +107,6 @@ model ClassSession {
   bookings ClassBooking[]
 
   @@index([startTime])
-  @@index([branchId, startTime])
   @@map("class_sessions")
 }
 
@@ -153,6 +120,7 @@ model ClassBooking {
   userId           String?
   user             user?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   status           BookingStatus @default(confirmed)
+  attended         Boolean       @default(true) // Auto-attended unless marked absent
   confirmationCode String        @unique @default(cuid())
   notes            String?
   createdAt        DateTime      @default(now())
@@ -172,7 +140,6 @@ model ClassTemplate {
   classType    GymClassType @relation(fields: [classTypeId], references: [id], onDelete: Cascade)
   instructorId String
   instructor   Instructor   @relation(fields: [instructorId], references: [id], onDelete: Cascade)
-  branchId     String
   dayOfWeek    Int          // 0=Sunday, 1=Monday...
   startTime    String       // "09:00" 24h format
   endTime      String
@@ -186,15 +153,25 @@ model ClassTemplate {
   @@map("class_templates")
 }
 
+enum GymClosureType {
+  holiday
+  maintenance
+  emergency
+  training
+  event
+  closure
+  other
+}
+
 model GymClosure {
-  id        String   @id @default(cuid())
-  teamId    String
-  team      team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  id        String         @id @default(cuid())
   date      DateTime
-  startTime String?  // null means all day
-  endTime   String?  // null means all day
+  startTime String?        // null means all day
+  endTime   String?        // null means all day
   reason    String?
-  createdAt DateTime @default(now())
+  type      GymClosureType @default(closure)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
   @@map("gym_closures")
 }
@@ -273,7 +250,7 @@ model UserMembership {
   user                 user             @relation(fields: [userId], references: [id], onDelete: Cascade)
   planId               String
   plan                 MembershipPlan   @relation(fields: [planId], references: [id])
-  stripeCustomerId     String
+  stripeCustomerId     String?          // Can be null for some checkout types
   stripeSubscriptionId String?
   status               MembershipStatus @default(PENDING_PAYMENT)
   sessionsRemaining    Int?

@@ -3,25 +3,9 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const templatesRouter = createTRPCRouter({
-  // Get all templates for the user's team
+  // Get all templates
   getAll: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.auth.userId;
-
-    const currentUser = await ctx.db.user.findUnique({
-      where: { id: userId },
-      select: { teamId: true },
-    });
-
-    if (!currentUser?.teamId) {
-      return [];
-    }
-
     return ctx.db.classTemplate.findMany({
-      where: {
-        classType: {
-          teamId: currentUser.teamId,
-        },
-      },
       include: {
         classType: true,
         instructor: true,
@@ -32,24 +16,8 @@ export const templatesRouter = createTRPCRouter({
 
   // Get templates grouped by day of week
   getGroupedByDay: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.auth.userId;
-
-    const currentUser = await ctx.db.user.findUnique({
-      where: { id: userId },
-      select: { teamId: true },
-    });
-
-    if (!currentUser?.teamId) {
-      return {};
-    }
-
     const templates = await ctx.db.classTemplate.findMany({
-      where: {
-        classType: {
-          teamId: currentUser.teamId,
-        },
-        isActive: true,
-      },
+      where: { isActive: true },
       include: {
         classType: true,
         instructor: true,
@@ -99,7 +67,6 @@ export const templatesRouter = createTRPCRouter({
       z.object({
         classTypeId: z.string().min(1, "Class type is required"),
         instructorId: z.string().min(1, "Instructor is required"),
-        branchId: z.string().min(1, "Branch is required"),
         dayOfWeek: z.number().min(0).max(6),
         startTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
         endTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
@@ -108,50 +75,6 @@ export const templatesRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.auth.userId;
-
-      const currentUser = await ctx.db.user.findUnique({
-        where: { id: userId },
-        select: { teamId: true },
-      });
-
-      if (!currentUser?.teamId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "User does not belong to a team",
-        });
-      }
-
-      // Verify class type belongs to user's team
-      const classType = await ctx.db.gymClassType.findFirst({
-        where: {
-          id: input.classTypeId,
-          teamId: currentUser.teamId,
-        },
-      });
-
-      if (!classType) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Class type not found or does not belong to your team",
-        });
-      }
-
-      // Verify branch belongs to user's team
-      const branch = await ctx.db.branch.findFirst({
-        where: {
-          id: input.branchId,
-          teamId: currentUser.teamId,
-        },
-      });
-
-      if (!branch) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Branch not found or does not belong to your team",
-        });
-      }
-
       // Check for conflicting templates (same instructor, day, overlapping time)
       const existingTemplates = await ctx.db.classTemplate.findMany({
         where: {
@@ -191,7 +114,6 @@ export const templatesRouter = createTRPCRouter({
         id: z.string(),
         classTypeId: z.string().optional(),
         instructorId: z.string().optional(),
-        branchId: z.string().optional(),
         dayOfWeek: z.number().min(0).max(6).optional(),
         startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
         endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),

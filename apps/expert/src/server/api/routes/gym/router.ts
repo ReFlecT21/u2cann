@@ -5,6 +5,9 @@ import { instructorsRouter } from "./instructors";
 import { sessionsRouter } from "./sessions";
 import { templatesRouter } from "./templates";
 import { bookingsRouter } from "./bookings";
+import { usersRouter } from "./users";
+import { dashboardRouter } from "./dashboard";
+import { closuresRouter } from "./closures";
 
 export const gymRouter = createTRPCRouter({
   // Public endpoints (no auth required)
@@ -16,4 +19,7 @@ export const gymRouter = createTRPCRouter({
   sessions: sessionsRouter,
   templates: templatesRouter,
   bookings: bookingsRouter,
+  users: usersRouter,
+  dashboard: dashboardRouter,
+  closures: closuresRouter,
 });

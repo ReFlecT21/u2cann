@@ -3,21 +3,9 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const classTypesRouter = createTRPCRouter({
-  // Get all class types for the user's team
+  // Get all class types
   getAll: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.auth.userId;
-
-    const currentUser = await ctx.db.user.findUnique({
-      where: { id: userId },
-      select: { teamId: true },
-    });
-
-    if (!currentUser?.teamId) {
-      return [];
-    }
-
     return ctx.db.gymClassType.findMany({
-      where: { teamId: currentUser.teamId },
       orderBy: { displayName: "asc" },
     });
   }),
@@ -58,25 +46,8 @@ export const classTypesRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.auth.userId;
-
-      const currentUser = await ctx.db.user.findUnique({
-        where: { id: userId },
-        select: { teamId: true },
-      });
-
-      if (!currentUser?.teamId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "User does not belong to a team",
-        });
-      }
-
       return ctx.db.gymClassType.create({
-        data: {
-          ...input,
-          teamId: currentUser.teamId,
-        },
+        data: input,
       });
     }),
 

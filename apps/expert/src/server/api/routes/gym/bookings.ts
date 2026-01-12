@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const bookingsRouter = createTRPCRouter({
-  // Get all bookings for the user's team
+  // Get all bookings (filtered by instructor for coaches)
   getAll: protectedProcedure
     .input(
       z.object({
@@ -17,25 +17,35 @@ export const bookingsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const userId = ctx.auth.userId;
 
+      // Get current user's role and check if they're an instructor
       const currentUser = await ctx.db.user.findUnique({
         where: { id: userId },
-        select: { teamId: true },
+        select: {
+          role: true,
+          instructor: {
+            select: { id: true }
+          }
+        },
       });
 
-      if (!currentUser?.teamId) {
-        return [];
+      const whereClause: any = {};
+
+      // If user is a coach, only show bookings for their sessions
+      if (currentUser?.role === "coach") {
+        if (!currentUser.instructor) {
+          // Coach is not linked to an instructor profile, return empty
+          return [];
+        }
+        whereClause.session = {
+          instructorId: currentUser.instructor.id,
+        };
       }
 
-      const whereClause: any = {
-        session: {
-          branch: {
-            teamId: currentUser.teamId,
-          },
-        },
-      };
-
       if (input?.startDate || input?.endDate) {
-        whereClause.session.startTime = {};
+        whereClause.session = {
+          ...whereClause.session,
+          startTime: {},
+        };
         if (input?.startDate) {
           whereClause.session.startTime.gte = input.startDate;
         }
@@ -67,7 +77,6 @@ export const bookingsRouter = createTRPCRouter({
             include: {
               classType: true,
               instructor: true,
-              branch: true,
             },
           },
           user: {
@@ -93,7 +102,6 @@ export const bookingsRouter = createTRPCRouter({
             include: {
               classType: true,
               instructor: true,
-              branch: true,
             },
           },
           user: true,
@@ -118,7 +126,6 @@ export const bookingsRouter = createTRPCRouter({
             include: {
               classType: true,
               instructor: true,
-              branch: true,
             },
           },
           user: true,
@@ -375,7 +382,7 @@ export const bookingsRouter = createTRPCRouter({
       });
     }),
 
-  // Get booking statistics
+  // Get booking statistics (filtered by instructor for coaches)
   getStats: protectedProcedure
     .input(
       z.object({
@@ -386,31 +393,40 @@ export const bookingsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const userId = ctx.auth.userId;
 
+      // Get current user's role and check if they're an instructor
       const currentUser = await ctx.db.user.findUnique({
         where: { id: userId },
-        select: { teamId: true },
+        select: {
+          role: true,
+          instructor: {
+            select: { id: true }
+          }
+        },
       });
 
-      if (!currentUser?.teamId) {
-        return {
-          total: 0,
-          confirmed: 0,
-          cancelled: 0,
-          noShow: 0,
-          completed: 0,
+      const whereClause: any = {};
+
+      // If user is a coach, only show stats for their sessions
+      if (currentUser?.role === "coach") {
+        if (!currentUser.instructor) {
+          return {
+            total: 0,
+            confirmed: 0,
+            cancelled: 0,
+            noShow: 0,
+            completed: 0,
+          };
+        }
+        whereClause.session = {
+          instructorId: currentUser.instructor.id,
         };
       }
 
-      const whereClause: any = {
-        session: {
-          branch: {
-            teamId: currentUser.teamId,
-          },
-        },
-      };
-
       if (input?.startDate || input?.endDate) {
-        whereClause.session.startTime = {};
+        whereClause.session = {
+          ...whereClause.session,
+          startTime: {},
+        };
         if (input?.startDate) {
           whereClause.session.startTime.gte = input.startDate;
         }

@@ -15,17 +15,12 @@ export type Instructor = {
   id: string;
   name: string;
   userId: string | null;
-  branchId: string;
   specialty: string | null;
   bio: string | null;
   user: {
     name: string | null;
     email: string;
   } | null;
-  branch: {
-    id: string;
-    name: string;
-  };
 };
 
 export function getColumns({
@@ -49,11 +44,6 @@ export function getColumns({
       accessorKey: "user.email",
       header: t("email"),
       cell: ({ row }) => row.original.user?.email || "—",
-    },
-    {
-      accessorKey: "branch.name",
-      header: t("branch"),
-      cell: ({ row }) => row.original.branch.name,
     },
     {
       accessorKey: "specialty",

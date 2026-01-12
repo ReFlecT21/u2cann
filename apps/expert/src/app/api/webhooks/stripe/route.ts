@@ -235,20 +235,63 @@ async function findOrCreateClerkUser(email: string, name?: string | null) {
 
 /**
  * Ensure user exists in database
+ * Handles case where email already exists with different ID
  */
 async function ensureDbUser(
   clerkId: string,
   email: string,
   name?: string | null
 ) {
-  return db.user.upsert({
+  // First, check if user exists by clerk ID
+  const existingById = await db.user.findUnique({
     where: { id: clerkId },
-    update: { email, name: name || undefined },
-    create: {
+  });
+
+  if (existingById) {
+    console.log(`[Stripe Webhook] User ${clerkId} already exists in DB`);
+    return existingById;
+  }
+
+  // Check if user exists by email (might be from a different clerk account)
+  const existingByEmail = await db.user.findUnique({
+    where: { email },
+  });
+
+  if (existingByEmail) {
+    // User exists with this email but different clerk ID
+    // Delete old record and create new one with new clerk ID
+    // This handles the case where user re-registered with Clerk
+    console.log(
+      `[Stripe Webhook] Migrating user from ${existingByEmail.id} to ${clerkId} for email ${email}`
+    );
+
+    // Use transaction to safely migrate user
+    return db.$transaction(async (tx) => {
+      // Delete old user (cascades to related records)
+      await tx.user.delete({
+        where: { id: existingByEmail.id },
+      });
+
+      // Create new user with new clerk ID
+      return tx.user.create({
+        data: {
+          id: clerkId,
+          email,
+          name: name || existingByEmail.name,
+          role: existingByEmail.role,
+        },
+      });
+    });
+  }
+
+  // Create new user
+  console.log(`[Stripe Webhook] Creating new user ${clerkId} for email ${email}`);
+  return db.user.create({
+    data: {
       id: clerkId,
       email,
       name: name || null,
-      role: "customer",
+      role: "trainee",
     },
   });
 }

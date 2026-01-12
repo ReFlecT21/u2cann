@@ -3,34 +3,18 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const sessionsRouter = createTRPCRouter({
-  // Get all sessions for the user's team
+  // Get all sessions
   getAll: protectedProcedure
     .input(
       z.object({
         startDate: z.date().optional(),
         endDate: z.date().optional(),
-        branchId: z.string().optional(),
         classTypeId: z.string().optional(),
         instructorId: z.string().optional(),
       }).optional()
     )
     .query(async ({ ctx, input }) => {
-      const userId = ctx.auth.userId;
-
-      const currentUser = await ctx.db.user.findUnique({
-        where: { id: userId },
-        select: { teamId: true },
-      });
-
-      if (!currentUser?.teamId) {
-        return [];
-      }
-
-      const whereClause: any = {
-        branch: {
-          teamId: currentUser.teamId,
-        },
-      };
+      const whereClause: any = {};
 
       if (input?.startDate) {
         whereClause.startTime = { gte: input.startDate };
@@ -41,10 +25,6 @@ export const sessionsRouter = createTRPCRouter({
           ...whereClause.startTime,
           lte: input.endDate,
         };
-      }
-
-      if (input?.branchId) {
-        whereClause.branchId = input.branchId;
       }
 
       if (input?.classTypeId) {
@@ -60,7 +40,6 @@ export const sessionsRouter = createTRPCRouter({
         include: {
           classType: true,
           instructor: true,
-          branch: true,
           bookings: {
             where: { status: "confirmed" },
             select: { id: true },
@@ -79,7 +58,6 @@ export const sessionsRouter = createTRPCRouter({
         include: {
           classType: true,
           instructor: true,
-          branch: true,
           bookings: {
             include: {
               user: {
@@ -104,7 +82,6 @@ export const sessionsRouter = createTRPCRouter({
       z.object({
         classTypeId: z.string().min(1, "Class type is required"),
         instructorId: z.string().min(1, "Instructor is required"),
-        branchId: z.string().min(1, "Branch is required"),
         startTime: z.date(),
         endTime: z.date(),
         capacity: z.number().min(1),
@@ -112,35 +89,6 @@ export const sessionsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.auth.userId;
-
-      const currentUser = await ctx.db.user.findUnique({
-        where: { id: userId },
-        select: { teamId: true },
-      });
-
-      if (!currentUser?.teamId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "User does not belong to a team",
-        });
-      }
-
-      // Verify branch belongs to user's team
-      const branch = await ctx.db.branch.findFirst({
-        where: {
-          id: input.branchId,
-          teamId: currentUser.teamId,
-        },
-      });
-
-      if (!branch) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Branch not found or does not belong to your team",
-        });
-      }
-
       // Check for conflicting sessions (same instructor at same time)
       const conflict = await ctx.db.classSession.findFirst({
         where: {
@@ -184,7 +132,6 @@ export const sessionsRouter = createTRPCRouter({
         include: {
           classType: true,
           instructor: true,
-          branch: true,
         },
       });
     }),
@@ -227,7 +174,6 @@ export const sessionsRouter = createTRPCRouter({
         include: {
           classType: true,
           instructor: true,
-          branch: true,
         },
       });
     }),
@@ -288,38 +234,12 @@ export const sessionsRouter = createTRPCRouter({
       z.object({
         startDate: z.date(),
         endDate: z.date(),
-        branchId: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.auth.userId;
-
-      const currentUser = await ctx.db.user.findUnique({
-        where: { id: userId },
-        select: { teamId: true },
-      });
-
-      if (!currentUser?.teamId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "User does not belong to a team",
-        });
-      }
-
       // Get active templates
-      const whereClause: any = {
-        isActive: true,
-        classType: {
-          teamId: currentUser.teamId,
-        },
-      };
-
-      if (input.branchId) {
-        whereClause.branchId = input.branchId;
-      }
-
       const templates = await ctx.db.classTemplate.findMany({
-        where: whereClause,
+        where: { isActive: true },
         include: {
           classType: true,
           instructor: true,
@@ -363,7 +283,6 @@ export const sessionsRouter = createTRPCRouter({
             sessionsToCreate.push({
               classTypeId: template.classTypeId,
               instructorId: template.instructorId,
-              branchId: template.branchId,
               startTime,
               endTime,
               capacity: template.capacity,

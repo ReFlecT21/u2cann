@@ -22,7 +22,7 @@ export interface StripePlanConfig {
 export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   // ===== FREE TRIAL =====
   // Product: Free Trial - SGD 0.00
-  "prod_free_trial": {
+  prod_Tft8gngNNnwXQ8: {
     planType: "FREE_TRIAL",
     category: "TRIAL",
     name: "Free Trial",
@@ -35,7 +35,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   // ===== FLEXI PACKAGES (One-time, session-based) =====
 
   // Adult Flexi Package - 10 Session Pass - SGD 350.00
-  "prod_adult_flexi_10": {
+  prod_Tft2CsejysdWjx: {
     planType: "FLEXI_ADULT_10",
     category: "FLEXI_PACKAGE",
     name: "Adult Flexi Package - 10 Sessions",
@@ -46,7 +46,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // Adult Flexi Package - 5 Session Pass - SGD 205.00
-  "prod_adult_flexi_5": {
+  prod_Tft1S6AbMv17fS: {
     planType: "FLEXI_ADULT_5",
     category: "FLEXI_PACKAGE",
     name: "Adult Flexi Package - 5 Sessions",
@@ -57,7 +57,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // Youth Flexi Package - 10 Session Pass - SGD 350.00
-  "prod_youth_flexi_10": {
+  prod_Tft0i8C9ENKL4y: {
     planType: "FLEXI_YOUTH_10",
     category: "FLEXI_PACKAGE",
     name: "Youth Flexi Package - 10 Sessions",
@@ -68,7 +68,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // Youth Flexi Package - 5 Session Pass - SGD 205.00
-  "prod_youth_flexi_5": {
+  prod_TfszCQ0nQPkdCC: {
     planType: "FLEXI_YOUTH_5",
     category: "FLEXI_PACKAGE",
     name: "Youth Flexi Package - 5 Sessions",
@@ -79,7 +79,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // Junior Flexi Package - 10 Session Pass - SGD 285.00
-  "prod_junior_flexi_10": {
+  prod_Tfsyu52WUS3VDX: {
     planType: "FLEXI_JUNIOR_10",
     category: "FLEXI_PACKAGE",
     name: "Junior Flexi Package - 10 Sessions",
@@ -90,7 +90,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // Junior Flexi Package - 5 Session Pass - SGD 150.00
-  "prod_junior_flexi_5": {
+  prod_TfsyXTkjC3Xgo9: {
     planType: "FLEXI_JUNIOR_5",
     category: "FLEXI_PACKAGE",
     name: "Junior Flexi Package - 5 Sessions",
@@ -103,7 +103,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   // ===== MONTHLY MEMBERSHIPS - ADULT =====
 
   // Adults Monthly Membership - 1 Year Package - SGD 175.00/month
-  "prod_adult_monthly_1yr": {
+  prod_TfsnoM0t71J5zO: {
     planType: "MONTHLY_ADULT_1YR",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Adults Monthly Membership - 1 Year",
@@ -113,7 +113,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // Adults Monthly Membership - 6 Months Package - SGD 192.00/month
-  "prod_adult_monthly_6mo": {
+  prod_TfsledpOQsyR7S: {
     planType: "MONTHLY_ADULT_6MO",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Adults Monthly Membership - 6 Months",
@@ -123,7 +123,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // Adult Monthly Membership - 3 Months Package - SGD 209.00/month
-  "prod_adult_monthly_3mo": {
+  prod_Tfsj2Oe4cINuX5: {
     planType: "MONTHLY_ADULT_3MO",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Adults Monthly Membership - 3 Months",
@@ -133,7 +133,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // Adults Monthly Membership - SGD 223.00/month (no commitment)
-  "prod_adult_monthly": {
+  prod_Tfsj889ZSsjPcn: {
     planType: "MONTHLY_ADULT",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Adults Monthly Membership",
@@ -145,7 +145,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   // ===== MONTHLY MEMBERSHIPS - STUDENT =====
 
   // Student Monthly Membership - 1 Year Package - SGD 98.00/month
-  "prod_student_monthly_1yr": {
+  prod_Tfsb4Pk9Ep6B5e: {
     planType: "MONTHLY_STUDENT_1YR",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Student Monthly Membership - 1 Year",
@@ -155,7 +155,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // Student Monthly Membership - 6 Months package - SGD 109.00/month
-  "prod_student_monthly_6mo": {
+  prod_TfsaOxO2uHh3NE: {
     planType: "MONTHLY_STUDENT_6MO",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Student Monthly Membership - 6 Months",
@@ -165,7 +165,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // Student Monthly Membership - 3 Months package - SGD 117.00/month
-  "prod_student_monthly_3mo": {
+  prod_TfsaaRAijAzAzV: {
     planType: "MONTHLY_STUDENT_3MO",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Student Monthly Membership - 3 Months",
@@ -175,7 +175,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // Student Monthly Membership - SGD 132.00/month
-  "prod_student_monthly": {
+  prod_TfsIKwWxa9klZT: {
     planType: "MONTHLY_STUDENT",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Student Monthly Membership",
@@ -187,7 +187,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   // ===== MONTHLY MEMBERSHIPS - NSF/NSMEN =====
 
   // NSF/NSMEN Monthly Membership - 1 Year Package - SGD 158.00/month
-  "prod_nsf_monthly_1yr": {
+  prod_TfsfHuMMI3SNVh: {
     planType: "MONTHLY_NSF_1YR",
     category: "MONTHLY_SUBSCRIPTION",
     name: "NSF/NSMEN Monthly Membership - 1 Year",
@@ -197,7 +197,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // NSF/NSMEN Monthly Membership - 6 Months Package - SGD 175.00/month
-  "prod_nsf_monthly_6mo": {
+  prod_TfsfXRdTQbgMeS: {
     planType: "MONTHLY_NSF_6MO",
     category: "MONTHLY_SUBSCRIPTION",
     name: "NSF/NSMEN Monthly Membership - 6 Months",
@@ -207,7 +207,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // NSF/NSMEN Monthly Membership - 3 Months Package - SGD 192.00/month
-  "prod_nsf_monthly_3mo": {
+  prod_TfseuoXMJeNVw9: {
     planType: "MONTHLY_NSF_3MO",
     category: "MONTHLY_SUBSCRIPTION",
     name: "NSF/NSMEN Monthly Membership - 3 Months",
@@ -217,7 +217,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   },
 
   // NSF/NSMEN Monthly Membership - SGD 214.00/month
-  "prod_nsf_monthly": {
+  prod_TfscqLfFIbrfGO: {
     planType: "MONTHLY_NSF",
     category: "MONTHLY_SUBSCRIPTION",
     name: "NSF/NSMEN Monthly Membership",
@@ -229,7 +229,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   // ===== MONTHLY MEMBERSHIPS - JUNIOR =====
 
   // Junior Monthly Membership - 1 Year Package - SGD 76.00/month
-  "prod_junior_monthly_1yr": {
+  prod_TfsEQ8mhmKAzjF: {
     planType: "MONTHLY_JUNIOR_1YR",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Junior Monthly Membership - 1 Year",
@@ -238,41 +238,43 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
     priceInCents: 7600,
   },
 
-  // Junior Monthly Membership - 6 Months (placeholder - add if exists)
-  "prod_junior_monthly_6mo": {
+  // Junior Monthly Membership - 6 Months Package - SGD 84.00/month
+  prod_TfXOx3GdvRh6z3: {
     planType: "MONTHLY_JUNIOR_6MO",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Junior Monthly Membership - 6 Months",
     sessionsIncluded: null,
     commitmentMonths: 6,
-    priceInCents: 8500,
+    priceInCents: 8400,
   },
 
-  // Junior Monthly Membership - 3 Months (placeholder - add if exists)
-  "prod_junior_monthly_3mo": {
+  // Junior Monthly Membership - 3 Months Package - SGD 93.00/month
+  prod_TfXN1aF7mLXpEr: {
     planType: "MONTHLY_JUNIOR_3MO",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Junior Monthly Membership - 3 Months",
     sessionsIncluded: null,
     commitmentMonths: 3,
-    priceInCents: 9500,
+    priceInCents: 9300,
   },
 
-  // Junior Monthly Membership (placeholder - add if exists)
-  "prod_junior_monthly": {
+  // Junior Monthly Membership - SGD 108.00/month
+  prod_TfXMQvCD2rNgwc: {
     planType: "MONTHLY_JUNIOR",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Junior Monthly Membership",
     sessionsIncluded: null,
     commitmentMonths: 1,
-    priceInCents: 10500,
+    priceInCents: 10800,
   },
 };
 
 /**
  * Get plan configuration from Stripe Product ID
  */
-export function getPlanFromStripeProduct(productId: string): StripePlanConfig | null {
+export function getPlanFromStripeProduct(
+  productId: string,
+): StripePlanConfig | null {
   return STRIPE_PRODUCT_TO_PLAN[productId] || null;
 }
 

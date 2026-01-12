@@ -13,8 +13,6 @@ export const publicScheduleRouter = createTRPCRouter({
   getWeeklySchedule: publicProcedure
     .input(
       z.object({
-        branchId: z.string().optional(),
-        teamId: z.string().optional(),
         weekStartDate: z.date(),
       })
     )
@@ -22,37 +20,76 @@ export const publicScheduleRouter = createTRPCRouter({
       const weekEnd = new Date(input.weekStartDate);
       weekEnd.setDate(weekEnd.getDate() + 7);
 
-      const whereClause: any = {
-        startTime: {
-          gte: input.weekStartDate,
-          lt: weekEnd,
+      // Fetch gym closures for this week
+      const closures = await ctx.db.gymClosure.findMany({
+        where: {
+          date: {
+            gte: input.weekStartDate,
+            lt: weekEnd,
+          },
         },
-        isCancelled: false,
-      };
+      });
 
-      if (input.branchId) {
-        whereClause.branchId = input.branchId;
-      }
-
-      if (input.teamId) {
-        whereClause.branch = {
-          teamId: input.teamId,
-        };
+      // Create a map of closed dates/times for quick lookup
+      const closureMap = new Map<string, { allDay: boolean; startTime?: string; endTime?: string }[]>();
+      for (const closure of closures) {
+        const dateKey = closure.date.toISOString().split("T")[0]!;
+        if (!closureMap.has(dateKey)) {
+          closureMap.set(dateKey, []);
+        }
+        closureMap.get(dateKey)!.push({
+          allDay: !closure.startTime || !closure.endTime,
+          startTime: closure.startTime || undefined,
+          endTime: closure.endTime || undefined,
+        });
       }
 
       const sessions = await ctx.db.classSession.findMany({
-        where: whereClause,
+        where: {
+          startTime: {
+            gte: input.weekStartDate,
+            lt: weekEnd,
+          },
+          isCancelled: false,
+        },
         include: {
           classType: true,
           instructor: true,
-          branch: true,
         },
         orderBy: { startTime: "asc" },
       });
 
+      // Filter out sessions on closed days/times
+      const filteredSessions = sessions.filter((session) => {
+        const dateKey = session.startTime.toISOString().split("T")[0]!;
+        const closuresForDay = closureMap.get(dateKey);
+
+        if (!closuresForDay) return true; // No closures for this day
+
+        // Check each closure for this day
+        for (const closure of closuresForDay) {
+          if (closure.allDay) {
+            return false; // All day closure - filter out this session
+          }
+
+          // Time-specific closure - check if session overlaps
+          if (closure.startTime && closure.endTime) {
+            const sessionStartTime = session.startTime.toTimeString().slice(0, 5); // "HH:mm"
+            const sessionEndTime = session.endTime.toTimeString().slice(0, 5);
+
+            // Check if session overlaps with closure time
+            if (sessionStartTime < closure.endTime && sessionEndTime > closure.startTime) {
+              return false; // Session overlaps with closure
+            }
+          }
+        }
+
+        return true; // Session is not blocked
+      });
+
       // Group sessions by day of week
-      const groupedByDay: Record<number, typeof sessions> = {};
-      for (const session of sessions) {
+      const groupedByDay: Record<number, typeof filteredSessions> = {};
+      for (const session of filteredSessions) {
         const dayOfWeek = session.startTime.getDay();
         if (!groupedByDay[dayOfWeek]) {
           groupedByDay[dayOfWeek] = [];
@@ -61,10 +98,11 @@ export const publicScheduleRouter = createTRPCRouter({
       }
 
       return {
-        sessions,
+        sessions: filteredSessions,
         groupedByDay,
         weekStart: input.weekStartDate,
         weekEnd,
+        closedDates: Array.from(closureMap.keys()),
       };
     }),
 
@@ -77,7 +115,6 @@ export const publicScheduleRouter = createTRPCRouter({
         include: {
           classType: true,
           instructor: true,
-          branch: true,
           bookings: {
             where: { status: "confirmed" },
             select: { id: true },
@@ -205,7 +242,6 @@ export const publicScheduleRouter = createTRPCRouter({
             include: {
               classType: true,
               instructor: true,
-              branch: true,
             },
           },
         },
@@ -272,47 +308,20 @@ export const publicScheduleRouter = createTRPCRouter({
       });
     }),
 
-  // Get available branches/locations
-  getBranches: publicProcedure
-    .input(z.object({ teamId: z.string().optional() }))
-    .query(async ({ ctx, input }) => {
-      const whereClause: any = {};
-      if (input.teamId) {
-        whereClause.teamId = input.teamId;
-      }
-
-      return ctx.db.branch.findMany({
-        where: whereClause,
-        select: {
-          id: true,
-          name: true,
-          location: true,
-        },
-      });
-    }),
-
   // Get class types for filtering
-  getClassTypes: publicProcedure
-    .input(z.object({ teamId: z.string().optional() }))
-    .query(async ({ ctx, input }) => {
-      const whereClause: any = {};
-      if (input.teamId) {
-        whereClause.teamId = input.teamId;
-      }
-
-      return ctx.db.gymClassType.findMany({
-        where: whereClause,
-        select: {
-          id: true,
-          name: true,
-          displayName: true,
-          description: true,
-          duration: true,
-          isOpenGym: true,
-          color: true,
-        },
-      });
-    }),
+  getClassTypes: publicProcedure.query(async ({ ctx }) => {
+    return ctx.db.gymClassType.findMany({
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+        description: true,
+        duration: true,
+        isOpenGym: true,
+        color: true,
+      },
+    });
+  }),
 
   // ===== AUTHENTICATED PROCEDURES (for members) =====
 
@@ -561,7 +570,6 @@ export const publicScheduleRouter = createTRPCRouter({
             include: {
               classType: true,
               instructor: true,
-              branch: true,
             },
           },
         },

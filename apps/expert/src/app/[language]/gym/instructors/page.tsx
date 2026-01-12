@@ -28,19 +28,11 @@ import {
 } from "@adh/ui/ui/dialog";
 import { Input } from "@adh/ui/ui/input";
 import { Textarea } from "@adh/ui/ui/text-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@adh/ui/ui/select";
 import { toast } from "sonner";
 import { AdminGuard } from "../../components/AdminGuard";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  branchId: z.string().min(1, "Branch is required"),
   specialty: z.string().optional(),
   bio: z.string().optional(),
 });
@@ -55,7 +47,6 @@ export default function InstructorsPage() {
   const ctx = api.useContext();
 
   const { data: instructors = [] } = api.gym.instructors.getAll.useQuery();
-  const { data: branches = [] } = api.user.branches.getAllBranches.useQuery();
 
   const createInstructor = api.gym.instructors.create.useMutation({
     onSuccess: () => {
@@ -107,7 +98,6 @@ export default function InstructorsPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      branchId: "",
       specialty: "",
       bio: "",
     },
@@ -117,14 +107,12 @@ export default function InstructorsPage() {
     if (editingInstructor) {
       form.reset({
         name: editingInstructor.name,
-        branchId: editingInstructor.branchId,
         specialty: editingInstructor.specialty || "",
         bio: editingInstructor.bio || "",
       });
     } else {
       form.reset({
         name: "",
-        branchId: "",
         specialty: "",
         bio: "",
       });
@@ -187,28 +175,6 @@ export default function InstructorsPage() {
                           <FormControl>
                             <Input placeholder="John Doe" {...field} />
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="branchId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t("branch")}</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder={t("selectBranch")} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {branches.map((branch) => (
-                                <SelectItem key={branch.id} value={branch.id}>
-                                  {branch.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

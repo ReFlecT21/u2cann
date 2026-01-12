@@ -21,11 +21,6 @@ interface Session {
     id: string;
     name: string;
   };
-  branch: {
-    id: string;
-    name: string;
-    location: string;
-  };
 }
 
 interface WeeklyGridProps {

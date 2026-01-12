@@ -51,7 +51,7 @@ import { api } from "~/trpc/react";
 import dayjs from "dayjs";
 import { AdminGuard } from "../components/AdminGuard";
 
-const clinicExclusionSchema = z.object({
+const gymClosureSchema = z.object({
   id: z.string().optional(),
   date: z.date(),
   startTime: z.string().optional(),
@@ -69,19 +69,19 @@ const clinicExclusionSchema = z.object({
   isAllDay: z.boolean().default(false),
 });
 
-type ClinicExclusionFormData = z.infer<typeof clinicExclusionSchema>;
+type GymClosureFormData = z.infer<typeof gymClosureSchema>;
 
-const exclusionTypeLabels = {
+const closureTypeLabels = {
   holiday: "Holiday",
   maintenance: "Maintenance",
   emergency: "Emergency",
   training: "Staff Training",
   event: "Special Event",
-  closure: "Clinic Closure",
+  closure: "Gym Closure",
   other: "Other",
 };
 
-const exclusionTypeColors = {
+const closureTypeColors = {
   holiday: "bg-red-100 text-red-800",
   maintenance: "bg-orange-100 text-orange-800",
   emergency: "bg-red-100 text-red-800",
@@ -91,56 +91,52 @@ const exclusionTypeColors = {
   other: "bg-blue-100 text-blue-800",
 };
 
-export default function ClinicExclusionsPage() {
+export default function GymClosuresPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingExclusion, setEditingExclusion] = useState<any>(null);
+  const [editingClosure, setEditingClosure] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [exclusionToDelete, setExclusionToDelete] = useState<any>(null);
+  const [closureToDelete, setClosureToDelete] = useState<any>(null);
 
-  const { data: exclusions, refetch } =
-    api.user.availability.getClinicExclusions.useQuery();
+  const { data: closures, refetch } = api.gym.closures.getAll.useQuery();
 
-  const createMutation =
-    api.user.availability.createClinicExclusion.useMutation({
-      onSuccess: () => {
-        toast.success("Clinic exclusion created successfully");
-        refetch();
-        setIsDialogOpen(false);
-        reset();
-      },
-      onError: (error) => {
-        toast.error(error.message);
-      },
-    });
+  const createMutation = api.gym.closures.create.useMutation({
+    onSuccess: () => {
+      toast.success("Gym closure created successfully");
+      refetch();
+      setIsDialogOpen(false);
+      reset();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-  const updateMutation =
-    api.user.availability.updateClinicExclusion.useMutation({
-      onSuccess: () => {
-        toast.success("Clinic exclusion updated successfully");
-        refetch();
-        setIsDialogOpen(false);
-        setEditingExclusion(null);
-        reset();
-      },
-      onError: (error) => {
-        toast.error(error.message);
-      },
-    });
+  const updateMutation = api.gym.closures.update.useMutation({
+    onSuccess: () => {
+      toast.success("Gym closure updated successfully");
+      refetch();
+      setIsDialogOpen(false);
+      setEditingClosure(null);
+      reset();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-  const deleteMutation =
-    api.user.availability.deleteClinicExclusion.useMutation({
-      onSuccess: () => {
-        toast.success("Clinic exclusion deleted successfully");
-        refetch();
-        setDeleteDialogOpen(false);
-        setExclusionToDelete(null);
-      },
-      onError: (error) => {
-        toast.error(error.message);
-        setDeleteDialogOpen(false);
-        setExclusionToDelete(null);
-      },
-    });
+  const deleteMutation = api.gym.closures.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Gym closure deleted successfully");
+      refetch();
+      setDeleteDialogOpen(false);
+      setClosureToDelete(null);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      setDeleteDialogOpen(false);
+      setClosureToDelete(null);
+    },
+  });
 
   const {
     register,
@@ -149,18 +145,18 @@ export default function ClinicExclusionsPage() {
     watch,
     reset,
     formState: { errors },
-  } = useForm<ClinicExclusionFormData>({
-    resolver: zodResolver(clinicExclusionSchema),
+  } = useForm<GymClosureFormData>({
+    resolver: zodResolver(gymClosureSchema),
     defaultValues: {
       type: "holiday",
-      isAllDay: false,
+      isAllDay: true,
     },
   });
 
   const selectedDate = watch("date");
   const isAllDay = watch("isAllDay");
 
-  const onSubmit = (data: ClinicExclusionFormData) => {
+  const onSubmit = (data: GymClosureFormData) => {
     const submitData = {
       date: data.date?.toISOString().split("T")[0] ?? "",
       startTime: data.isAllDay ? undefined : data.startTime,
@@ -169,9 +165,9 @@ export default function ClinicExclusionsPage() {
       type: data.type,
     };
 
-    if (editingExclusion) {
+    if (editingClosure) {
       updateMutation.mutate({
-        id: editingExclusion.id,
+        id: editingClosure.id,
         ...submitData,
       });
     } else {
@@ -179,34 +175,34 @@ export default function ClinicExclusionsPage() {
     }
   };
 
-  const handleEdit = (exclusion: any) => {
-    setEditingExclusion(exclusion);
-    setValue("id", exclusion.id);
-    setValue("date", new Date(exclusion.date));
-    setValue("startTime", exclusion.startTime || "");
-    setValue("endTime", exclusion.endTime || "");
-    setValue("reason", exclusion.reason || "");
-    setValue("type", exclusion.type);
-    setValue("isAllDay", !exclusion.startTime && !exclusion.endTime);
+  const handleEdit = (closure: any) => {
+    setEditingClosure(closure);
+    setValue("id", closure.id);
+    setValue("date", new Date(closure.date));
+    setValue("startTime", closure.startTime || "");
+    setValue("endTime", closure.endTime || "");
+    setValue("reason", closure.reason || "");
+    setValue("type", closure.type);
+    setValue("isAllDay", !closure.startTime && !closure.endTime);
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (exclusion: any) => {
-    setExclusionToDelete(exclusion);
+  const handleDelete = (closure: any) => {
+    setClosureToDelete(closure);
     setDeleteDialogOpen(true);
   };
 
   const confirmDelete = () => {
-    if (exclusionToDelete) {
-      deleteMutation.mutate({ id: exclusionToDelete.id });
+    if (closureToDelete) {
+      deleteMutation.mutate({ id: closureToDelete.id });
     }
   };
 
   const openCreateDialog = () => {
-    setEditingExclusion(null);
+    setEditingClosure(null);
     reset({
       type: "holiday",
-      isAllDay: false,
+      isAllDay: true,
     });
     setIsDialogOpen(true);
   };
@@ -221,81 +217,75 @@ export default function ClinicExclusionsPage() {
 
   return (
     <AdminGuard>
-      <div className="container mx-auto py-6 space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Clinic Exclusions
-            </h1>
-            <p className="text-gray-600">
-              Manage clinic-wide closures and blocked time slots that affect all
-              clinicians
+            <h1 className="text-2xl font-bold">Gym Closures</h1>
+            <p className="text-muted-foreground">
+              Manage gym-wide closures and blocked time slots
             </p>
           </div>
           <Button onClick={openCreateDialog}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Clinic Exclusion
+            Add Closure
           </Button>
         </div>
 
-        {/* Exclusions List */}
+        {/* Closures List */}
         <div className="space-y-4">
-          {exclusions?.length === 0 ? (
+          {closures?.length === 0 ? (
             <Card>
-              <CardContent className="p-8 text-center text-gray-500">
-                <CalendarDays className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <CardContent className="p-8 text-center text-muted-foreground">
+                <CalendarDays className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-medium mb-2">
-                  No clinic exclusions set
+                  No gym closures set
                 </h3>
                 <p className="text-sm">
-                  Add exclusions for holidays, maintenance, or other clinic-wide
+                  Add closures for holidays, maintenance, or other gym-wide
                   closures
                 </p>
               </CardContent>
             </Card>
           ) : (
-            exclusions?.map((exclusion) => (
-              <Card key={exclusion.id}>
+            closures?.map((closure) => (
+              <Card key={closure.id}>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="flex-shrink-0">
-                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                          {exclusion.startTime && exclusion.endTime ? (
-                            <Clock className="h-6 w-6 text-gray-600" />
+                        <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                          {closure.startTime && closure.endTime ? (
+                            <Clock className="h-6 w-6 text-muted-foreground" />
                           ) : (
-                            <CalendarDays className="h-6 w-6 text-gray-600" />
+                            <CalendarDays className="h-6 w-6 text-muted-foreground" />
                           )}
                         </div>
                       </div>
                       <div>
                         <div className="font-semibold text-lg">
-                          {format(
-                            new Date(exclusion.date),
-                            "EEEE, MMMM dd, yyyy",
-                          )}
+                          {format(new Date(closure.date), "EEEE, MMMM dd, yyyy")}
                         </div>
-                        <div className="text-gray-600">
-                          {exclusion.startTime && exclusion.endTime
-                            ? `${exclusion.startTime} - ${exclusion.endTime}`
+                        <div className="text-muted-foreground">
+                          {closure.startTime && closure.endTime
+                            ? `${closure.startTime} - ${closure.endTime}`
                             : "All Day"}
                         </div>
-                        {exclusion.reason && (
-                          <div className="text-sm text-gray-500 mt-1">
-                            {exclusion.reason}
+                        {closure.reason && (
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {closure.reason}
                           </div>
                         )}
                       </div>
                       <Badge
                         className={
-                          exclusionTypeColors[
-                            exclusion.type as keyof typeof exclusionTypeColors
+                          closureTypeColors[
+                            closure.type as keyof typeof closureTypeColors
                           ]
                         }
                       >
                         {
-                          exclusionTypeLabels[
-                            exclusion.type as keyof typeof exclusionTypeLabels
+                          closureTypeLabels[
+                            closure.type as keyof typeof closureTypeLabels
                           ]
                         }
                       </Badge>
@@ -304,14 +294,14 @@ export default function ClinicExclusionsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleEdit(exclusion)}
+                        onClick={() => handleEdit(closure)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(exclusion)}
+                        onClick={() => handleDelete(closure)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -328,9 +318,7 @@ export default function ClinicExclusionsPage() {
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>
-                {editingExclusion
-                  ? "Edit Clinic Exclusion"
-                  : "Add Clinic Exclusion"}
+                {editingClosure ? "Edit Gym Closure" : "Add Gym Closure"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -343,9 +331,7 @@ export default function ClinicExclusionsPage() {
                       className="w-full justify-start text-left font-normal"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate
-                        ? format(selectedDate, "PPP")
-                        : "Pick a date"}
+                      {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -423,13 +409,11 @@ export default function ClinicExclusionsPage() {
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(exclusionTypeLabels).map(
-                      ([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ),
-                    )}
+                    {Object.entries(closureTypeLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -452,11 +436,9 @@ export default function ClinicExclusionsPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={
-                    createMutation.isPending || updateMutation.isPending
-                  }
+                  disabled={createMutation.isPending || updateMutation.isPending}
                 >
-                  {editingExclusion ? "Update" : "Create"} Exclusion
+                  {editingClosure ? "Update" : "Create"} Closure
                 </Button>
               </DialogFooter>
             </form>
@@ -467,25 +449,25 @@ export default function ClinicExclusionsPage() {
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Clinic Exclusion</AlertDialogTitle>
+              <AlertDialogTitle>Delete Gym Closure</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete this clinic exclusion?
-                {exclusionToDelete && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                Are you sure you want to delete this gym closure?
+                {closureToDelete && (
+                  <div className="mt-3 p-3 bg-muted rounded-lg">
                     <div className="font-medium">
                       {format(
-                        new Date(exclusionToDelete.date),
-                        "EEEE, MMMM dd, yyyy",
+                        new Date(closureToDelete.date),
+                        "EEEE, MMMM dd, yyyy"
                       )}
                     </div>
-                    <div className="text-sm text-gray-600">
-                      {exclusionToDelete.startTime && exclusionToDelete.endTime
-                        ? `${exclusionToDelete.startTime} - ${exclusionToDelete.endTime}`
+                    <div className="text-sm text-muted-foreground">
+                      {closureToDelete.startTime && closureToDelete.endTime
+                        ? `${closureToDelete.startTime} - ${closureToDelete.endTime}`
                         : "All Day"}
                     </div>
-                    {exclusionToDelete.reason && (
-                      <div className="text-sm text-gray-500 mt-1">
-                        {exclusionToDelete.reason}
+                    {closureToDelete.reason && (
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {closureToDelete.reason}
                       </div>
                     )}
                   </div>
@@ -510,7 +492,7 @@ export default function ClinicExclusionsPage() {
                 ) : (
                   <>
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Exclusion
+                    Delete Closure
                   </>
                 )}
               </AlertDialogAction>

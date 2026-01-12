@@ -3,25 +3,9 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const instructorsRouter = createTRPCRouter({
-  // Get all instructors for the user's team
+  // Get all instructors
   getAll: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.auth.userId;
-
-    const currentUser = await ctx.db.user.findUnique({
-      where: { id: userId },
-      select: { teamId: true },
-    });
-
-    if (!currentUser?.teamId) {
-      return [];
-    }
-
     return ctx.db.instructor.findMany({
-      where: {
-        branch: {
-          teamId: currentUser.teamId,
-        },
-      },
       include: {
         user: {
           select: {
@@ -29,12 +13,6 @@ export const instructorsRouter = createTRPCRouter({
             name: true,
             email: true,
             avatar: true,
-          },
-        },
-        branch: {
-          select: {
-            id: true,
-            name: true,
           },
         },
       },
@@ -50,7 +28,6 @@ export const instructorsRouter = createTRPCRouter({
         where: { id: input.id },
         include: {
           user: true,
-          branch: true,
           sessions: {
             take: 10,
             orderBy: { startTime: "desc" },
@@ -74,47 +51,16 @@ export const instructorsRouter = createTRPCRouter({
       z.object({
         name: z.string().min(1, "Name is required"),
         userId: z.string().optional(),
-        branchId: z.string().min(1, "Branch is required"),
         specialty: z.string().optional(),
         bio: z.string().optional(),
         avatar: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.auth.userId;
-
-      const currentUser = await ctx.db.user.findUnique({
-        where: { id: userId },
-        select: { teamId: true },
-      });
-
-      if (!currentUser?.teamId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "User does not belong to a team",
-        });
-      }
-
-      // Verify branch belongs to user's team
-      const branch = await ctx.db.branch.findFirst({
-        where: {
-          id: input.branchId,
-          teamId: currentUser.teamId,
-        },
-      });
-
-      if (!branch) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Branch not found or does not belong to your team",
-        });
-      }
-
       return ctx.db.instructor.create({
         data: input,
         include: {
           user: true,
-          branch: true,
         },
       });
     }),
@@ -126,7 +72,6 @@ export const instructorsRouter = createTRPCRouter({
         id: z.string(),
         name: z.string().min(1).optional(),
         userId: z.string().optional(),
-        branchId: z.string().optional(),
         specialty: z.string().optional(),
         bio: z.string().optional(),
         avatar: z.string().optional(),
@@ -148,7 +93,6 @@ export const instructorsRouter = createTRPCRouter({
         data,
         include: {
           user: true,
-          branch: true,
         },
       });
     }),

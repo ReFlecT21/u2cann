@@ -21,9 +21,9 @@ export function MembershipBadge() {
     );
   }
 
-  if (membership.type === "subscription") {
-    const renewDate = membership.currentPeriodEnd
-      ? new Date(membership.currentPeriodEnd).toLocaleDateString("en-US", {
+  if (membership.membershipType === "subscription") {
+    const renewDate = membership.expiresAt
+      ? new Date(membership.expiresAt).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         })
@@ -39,7 +39,7 @@ export function MembershipBadge() {
     );
   }
 
-  if (membership.type === "flexi") {
+  if (membership.membershipType === "flexi") {
     return (
       <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium">
         <CreditCard className="h-4 w-4" />

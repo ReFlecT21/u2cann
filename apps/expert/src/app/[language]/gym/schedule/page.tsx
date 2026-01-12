@@ -52,7 +52,6 @@ const DAYS_OF_WEEK = [
 const templateFormSchema = z.object({
   classTypeId: z.string().min(1, "Class type is required"),
   instructorId: z.string().min(1, "Instructor is required"),
-  branchId: z.string().min(1, "Branch is required"),
   dayOfWeek: z.coerce.number().min(0).max(6),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
@@ -62,7 +61,6 @@ const templateFormSchema = z.object({
 const generateFormSchema = z.object({
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
-  branchId: z.string().optional(),
 });
 
 type TemplateFormValues = z.infer<typeof templateFormSchema>;
@@ -82,7 +80,6 @@ export default function SchedulePage() {
   });
   const { data: classTypes = [] } = api.gym.classTypes.getAll.useQuery();
   const { data: instructors = [] } = api.gym.instructors.getAll.useQuery();
-  const { data: branches = [] } = api.user.branches.getAllBranches.useQuery();
 
   // Mutations
   const createTemplate = api.gym.templates.create.useMutation({
@@ -135,7 +132,6 @@ export default function SchedulePage() {
     defaultValues: {
       classTypeId: "",
       instructorId: "",
-      branchId: "",
       dayOfWeek: 1,
       startTime: "09:00",
       endTime: "10:00",
@@ -148,7 +144,6 @@ export default function SchedulePage() {
     defaultValues: {
       startDate: format(new Date(), "yyyy-MM-dd"),
       endDate: format(addDays(new Date(), 7), "yyyy-MM-dd"),
-      branchId: "",
     },
   });
 
@@ -163,7 +158,6 @@ export default function SchedulePage() {
     generateSessions.mutate({
       startDate: new Date(values.startDate),
       endDate: new Date(values.endDate),
-      branchId: values.branchId || undefined,
     });
   }
 
@@ -228,29 +222,6 @@ export default function SchedulePage() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={generateForm.control}
-                        name="branchId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("sessions.branch")} (Optional)</FormLabel>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="All branches" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="">All branches</SelectItem>
-                                {branches.map((branch) => (
-                                  <SelectItem key={branch.id} value={branch.id}>
-                                    {branch.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                       <DialogFooter>
                         <Button
                           type="submit"
@@ -302,7 +273,7 @@ export default function SchedulePage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>{t("sessions.classType")}</FormLabel>
-                              <Select value={field.value} onValueChange={field.onChange}>
+                              <Select value={field.value || undefined} onValueChange={field.onChange}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select class type" />
                                 </SelectTrigger>
@@ -324,7 +295,7 @@ export default function SchedulePage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>{t("sessions.instructor")}</FormLabel>
-                              <Select value={field.value} onValueChange={field.onChange}>
+                              <Select value={field.value || undefined} onValueChange={field.onChange}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select instructor" />
                                 </SelectTrigger>
@@ -332,28 +303,6 @@ export default function SchedulePage() {
                                   {instructors.map((inst) => (
                                     <SelectItem key={inst.id} value={inst.id}>
                                       {inst.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={templateForm.control}
-                          name="branchId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{t("sessions.branch")}</FormLabel>
-                              <Select value={field.value} onValueChange={field.onChange}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select branch" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {branches.map((branch) => (
-                                    <SelectItem key={branch.id} value={branch.id}>
-                                      {branch.name}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -535,7 +484,7 @@ export default function SchedulePage() {
                               </span>
                             </div>
                             <div className="text-xs text-muted-foreground mt-1">
-                              {session.instructor?.name} at {session.branch?.name}
+                              {session.instructor?.name}
                             </div>
                           </div>
                         </div>
