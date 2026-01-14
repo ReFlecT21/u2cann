@@ -48,6 +48,7 @@ export default function MainProviders({
     >
       <Toaster richColors position="top-right" closeButton theme="system" />
       <ClerkProvider
+        signInUrl="/sign-in"
         signUpUrl="/sign-up"
         localization={currentLocale === "ja" ? jaJP : enUS}
       >
