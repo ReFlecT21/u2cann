@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSignIn } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -14,8 +14,9 @@ export default function CustomSignInPage() {
   const router = useRouter();
   const params = useSearchParams();
   const redirectTo = params.get("redirect_url") || "/redirect";
+  const prefillEmail = params.get("email") || "";
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefillEmail);
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");

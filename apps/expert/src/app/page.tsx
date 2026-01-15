@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSignIn, useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@adh/ui/ui/button";
@@ -13,8 +13,10 @@ export default function HomePage() {
   const { isLoaded, signIn, setActive } = useSignIn();
   const { isLoaded: isUserLoaded, isSignedIn } = useUser();
   const router = useRouter();
+  const params = useSearchParams();
+  const prefillEmail = params.get("email") || "";
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefillEmail);
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");

@@ -15,10 +15,11 @@ export async function sendWelcomeEmail({ to, firstName }: SendWelcomeEmailParams
   }
 
   const greeting = firstName ? `Hi ${firstName},` : "Hi there,";
+  const signInUrl = `https://app.u2canboxing.com/sign-in?email=${encodeURIComponent(to)}`;
 
   try {
     const { data, error } = await resend.emails.send({
-      from: "U2CAN Boxing <noreply@admin.u2canboxing.com>",
+      from: "U2CAN Boxing <noreply@u2canboxing.com>",
       to: [to],
       subject: "Welcome to U2CAN Boxing – Let's Get Started",
       html: `
@@ -45,10 +46,13 @@ export async function sendWelcomeEmail({ to, firstName }: SendWelcomeEmailParams
   <h2 style="color: #1a1a1a;">&#x1F510; How to Log In to the U2CAN Boxing App</h2>
 
   <ol style="padding-left: 20px;">
-    <li style="margin-bottom: 10px;">Click this link: <a href="https://app.u2canboxing.com" style="color: #0066cc;">app.u2canboxing.com</a></li>
-    <li style="margin-bottom: 10px;">Enter the <strong>email address you used to sign up</strong></li>
+    <li style="margin-bottom: 10px;">Click the button below</li>
     <li style="margin-bottom: 10px;">Enter the <strong>OTP (one-time password)</strong> sent to your email</li>
   </ol>
+
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${signInUrl}" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: bold; font-size: 16px;">Sign In to U2CAN Boxing</a>
+  </div>
 
   <p>That's it. No passwords to remember.</p>
 
@@ -107,9 +111,8 @@ You've just taken a powerful step towards becoming stronger, fitter, and more co
 
 HOW TO LOG IN TO THE U2CAN BOXING APP
 
-1. Click this link: app.u2canboxing.com
-2. Enter the email address you used to sign up
-3. Enter the OTP (one-time password) sent to your email
+1. Click this link: ${signInUrl}
+2. Enter the OTP (one-time password) sent to your email
 
 That's it. No passwords to remember.
 
