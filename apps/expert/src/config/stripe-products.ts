@@ -32,6 +32,18 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
     flexiExpiryMonths: 1,
   },
 
+  // ===== TRIAL CLASS =====
+  // Product: Trial Class - SGD 10.00 (single session)
+  prod_TnPx5MPbWLtVH4: {
+    planType: "TRIAL_CLASS",
+    category: "TRIAL",
+    name: "Trial Class",
+    sessionsIncluded: 1,
+    commitmentMonths: null,
+    priceInCents: 1000,
+    flexiExpiryMonths: 1,
+  },
+
   // ===== FLEXI PACKAGES (One-time, session-based) =====
 
   // Adult Flexi Package - 10 Session Pass - SGD 350.00

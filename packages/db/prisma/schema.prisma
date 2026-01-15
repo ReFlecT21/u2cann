@@ -182,6 +182,7 @@ model GymClosure {
 
 enum MembershipPlanType {
   FREE_TRIAL
+  TRIAL_CLASS
   // Flexi Packages
   FLEXI_ADULT_5
   FLEXI_ADULT_10
