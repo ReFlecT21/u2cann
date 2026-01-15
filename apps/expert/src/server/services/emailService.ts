@@ -30,17 +30,18 @@ export async function sendWelcomeEmail({ to, firstName }: SendWelcomeEmailParams
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome to U2CAN Boxing</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 0;">
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f3f4f6;">
+  <!-- Wrapper -->
+  <div style="background-color: #ffffff; border-radius: 12px; overflow: hidden; margin: 20px;">
   <!-- Dark Header -->
-  <div style="background-color: #111827; padding: 40px 20px; text-align: center; border-radius: 12px 12px 0 0;">
+  <div style="background-color: #111827; padding: 40px 20px; text-align: center;">
     <img src="https://app.u2canboxing.com/logo.png" alt="U2CAN Boxing" width="80" height="80" style="border-radius: 50%; margin-bottom: 20px;">
     <h1 style="color: #ffffff; font-size: 28px; font-weight: 900; font-style: italic; letter-spacing: -0.5px; margin: 0;">WELCOME TO U2CAN</h1>
     <p style="color: #9ca3af; margin: 10px 0 0 0; font-size: 14px;">Let's get you started</p>
   </div>
 
   <!-- Content -->
-  <div style="padding: 30px 20px;">
-
+  <div style="padding: 30px 20px; background-color: #ffffff;">
   <p>${greeting}</p>
 
   <p>We're excited to have you with us.</p>
@@ -104,8 +105,9 @@ export async function sendWelcomeEmail({ to, firstName }: SendWelcomeEmailParams
   </div>
 
   <!-- Dark Footer -->
-  <div style="background-color: #111827; padding: 20px; text-align: center; border-radius: 0 0 12px 12px;">
+  <div style="background-color: #111827; padding: 20px; text-align: center;">
     <p style="color: #9ca3af; margin: 0; font-size: 12px;">U2CAN Boxing</p>
+  </div>
   </div>
 </body>
 </html>
