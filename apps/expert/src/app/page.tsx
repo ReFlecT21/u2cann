@@ -204,16 +204,6 @@ export default function HomePage() {
                   </Button>
                 </form>
 
-                {/* Sign Up Link */}
-                <p className="mt-8 text-center text-sm text-gray-600">
-                  Don't have an account?{" "}
-                  <Link
-                    href="/sign-up"
-                    className="font-semibold text-gray-900 hover:text-gray-700"
-                  >
-                    Sign up
-                  </Link>
-                </p>
               </>
             ) : (
               <>
