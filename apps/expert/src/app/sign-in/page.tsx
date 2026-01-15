@@ -149,7 +149,7 @@ export default function CustomSignInPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Enter your email"
-                        className="pl-10 h-12 text-base border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                        className="pl-10 h-12 text-base text-gray-900 border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                         required
                         disabled={isLoading}
                       />
