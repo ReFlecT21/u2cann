@@ -6,6 +6,7 @@ import { GeistSans } from "geist/font/sans";
 import { Loader2 } from "lucide-react";
 
 import MainProviders from "./_mainProviders";
+import { PWARegister } from "~/components/PWARegister";
 
 export const metadata: Metadata = {
   title: "U2Can Boxing",
@@ -40,8 +41,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className={GeistSans.className}>
+        <PWARegister />
         <Suspense
           fallback={
             <div className="flex h-dvh w-screen items-center justify-center">

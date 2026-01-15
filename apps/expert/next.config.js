@@ -8,7 +8,7 @@ const withNextIntl = createNextIntlPlugin();
 // PWA configuration - app-wide
 const withPWA = withPWAInit({
   dest: "public",
-  register: true,
+  register: false, // Manual registration for better iOS support
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
   runtimeCaching: [
