@@ -8,6 +8,7 @@ import {
   getFlexiExpiryMonths,
 } from "~/config/stripe-products";
 import { mapStripeStatusToInternal } from "~/server/services/membershipService";
+import { sendWelcomeEmail } from "~/server/services/emailService";
 
 // Initialize Stripe only if configured
 const stripe = env.STRIPE_SECRET_KEY
@@ -134,6 +135,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log(
     `[Stripe Webhook] Created membership for user ${dbUser.id}, plan: ${planConfig.planType}`
   );
+
+  // Step 6: Send welcome email
+  const firstName = session.customer_details?.name?.split(" ")[0];
+  await sendWelcomeEmail({
+    to: customerEmail,
+    firstName,
+  });
 }
 
 /**
