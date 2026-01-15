@@ -18,7 +18,7 @@ export async function sendWelcomeEmail({ to, firstName }: SendWelcomeEmailParams
 
   try {
     const { data, error } = await resend.emails.send({
-      from: "U2CAN Boxing <noreply@u2canboxing.com>",
+      from: "U2CAN Boxing <noreply@admin.u2canboxing.com>",
       to: [to],
       subject: "Welcome to U2CAN Boxing – Let's Get Started",
       html: `
