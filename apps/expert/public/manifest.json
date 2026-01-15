@@ -1,13 +1,13 @@
 {
-  "name": "U2Can Boxing - Book Classes",
-  "short_name": "U2Can Book",
+  "name": "U2Can Boxing",
+  "short_name": "U2Can",
   "description": "Book boxing classes at U2Can Boxing Gym",
-  "start_url": "/schedule",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#ffffff",
-  "theme_color": "#dc2626",
-  "scope": "/schedule",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "scope": "/",
   "categories": ["sports", "fitness", "health"],
   "icons": [
     {

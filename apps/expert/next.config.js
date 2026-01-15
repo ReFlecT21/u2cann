@@ -5,13 +5,12 @@ import withPWAInit from "next-pwa";
 
 const withNextIntl = createNextIntlPlugin();
 
-// PWA configuration - scoped to /schedule path
+// PWA configuration - app-wide
 const withPWA = withPWAInit({
   dest: "public",
-  register: false, // Manual registration for better control
+  register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
-  scope: "/schedule",
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.(?:gstatic)\.com\/.*/i,
