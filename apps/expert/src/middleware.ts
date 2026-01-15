@@ -17,6 +17,10 @@ const publicRoutes = createRouteMatcher([
   "/api/webhooks/clerk",
   "/api/trpc/(.*)",
   "/health",
+  // PWA files
+  "/manifest.json",
+  "/sw.js",
+  "/workbox-(.*)",
 ]);
 
 const adminRoutes = createRouteMatcher(["/admin", "/admin/(.*)"]);
