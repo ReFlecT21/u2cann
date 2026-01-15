@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
+import { useUser, UserButton } from "@clerk/nextjs";
+import Link from "next/link";
 import { Skeleton } from "@adh/ui/ui/skeleton";
 import { Button } from "@adh/ui/ui/button";
 import { LogIn } from "lucide-react";
@@ -109,7 +110,7 @@ export default function SchedulePage() {
                   />
                 </div>
               ) : (
-                <SignInButton mode="modal">
+                <Link href="/sign-in?redirect_url=/schedule">
                   <Button
                     variant="outline"
                     size="sm"
@@ -118,7 +119,7 @@ export default function SchedulePage() {
                     <LogIn className="mr-2 h-4 w-4" />
                     Sign In
                   </Button>
-                </SignInButton>
+                </Link>
               )}
             </div>
           </div>
