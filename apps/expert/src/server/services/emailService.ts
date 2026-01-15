@@ -34,8 +34,8 @@ export async function sendWelcomeEmail({ to, firstName }: SendWelcomeEmailParams
   <!-- Wrapper -->
   <div style="background-color: #ffffff; border-radius: 12px; overflow: hidden; margin: 20px;">
   <!-- Dark Header -->
-  <div style="background-color: #111827; padding: 40px 20px; text-align: center;">
-    <img src="https://app.u2canboxing.com/logo.png" alt="U2CAN Boxing" width="80" height="80" style="border-radius: 50%; margin-bottom: 20px;">
+  <div style="background-color: #111827; padding: 25px 20px; text-align: center;">
+    <img src="https://app.u2canboxing.com/logo.png" alt="U2CAN Boxing" width="100" height="100" style="border-radius: 50%; margin-bottom: 15px;">
     <h1 style="color: #ffffff; font-size: 28px; font-weight: 900; font-style: italic; letter-spacing: -0.5px; margin: 0;">WELCOME TO U2CAN</h1>
     <p style="color: #9ca3af; margin: 10px 0 0 0; font-size: 14px;">Let's get you started</p>
   </div>
