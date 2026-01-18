@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { STRIPE_PRODUCT_TO_PLAN } from "~/config/stripe-products";
 import { sendWelcomeEmail } from "~/server/services/emailService";
@@ -247,11 +248,11 @@ export const usersRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.auth.userId;
+      const adminId = ctx.auth.userId;
 
       // Check if user is admin
       const currentUser = await ctx.db.user.findUnique({
-        where: { id: userId },
+        where: { id: adminId },
         select: { role: true },
       });
 
@@ -262,67 +263,93 @@ export const usersRouter = createTRPCRouter({
         });
       }
 
-      // Check if user with this email already exists
-      let user = await ctx.db.user.findUnique({
-        where: { email: input.email },
+      const fullName = `${input.firstName} ${input.lastName}`;
+      const client = await clerkClient();
+
+      // Step 1: Find or create Clerk user
+      let clerkUser;
+      const existingUsers = await client.users.getUserList({
+        emailAddress: [input.email],
       });
 
-      const fullName = `${input.firstName} ${input.lastName}`;
+      if (existingUsers.totalCount > 0) {
+        clerkUser = existingUsers.data[0];
+        console.log("[createMember] Found existing Clerk user:", clerkUser.id);
+      } else {
+        // Create new Clerk user
+        clerkUser = await client.users.createUser({
+          emailAddress: [input.email],
+          firstName: input.firstName,
+          lastName: input.lastName,
+          skipPasswordRequirement: true, // Will use OTP
+        });
+        console.log("[createMember] Created Clerk user:", clerkUser.id);
+      }
 
-      if (!user) {
-        // Create new user - generate a unique ID for non-Clerk users
-        const uniqueId = `manual_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        user = await ctx.db.user.create({
+      // Step 2: Ensure user exists in database
+      let dbUser = await ctx.db.user.findUnique({
+        where: { id: clerkUser.id },
+      });
+
+      if (!dbUser) {
+        // Check if user exists by email (might be from different clerk account)
+        const existingByEmail = await ctx.db.user.findUnique({
+          where: { email: input.email },
+        });
+
+        if (existingByEmail) {
+          // Migrate user to new clerk ID
+          await ctx.db.user.delete({ where: { id: existingByEmail.id } });
+        }
+
+        dbUser = await ctx.db.user.create({
           data: {
-            id: uniqueId,
+            id: clerkUser.id,
             email: input.email,
             name: fullName,
             role: "trainee",
           },
         });
+        console.log("[createMember] Created DB user:", dbUser.id);
+      } else {
+        console.log("[createMember] Found existing DB user:", dbUser.id);
       }
 
-      // Get or create the membership plan
+      // Step 3: Get or create the membership plan
       let plan;
 
       if (input.productId) {
-        // Find existing plan from Stripe product
         const productConfig = STRIPE_PRODUCT_TO_PLAN[input.productId];
         if (!productConfig) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Invalid product ID",
+            message: `Invalid product ID: ${input.productId}`,
           });
         }
 
-        plan = await ctx.db.membershipPlan.findUnique({
+        plan = await ctx.db.membershipPlan.upsert({
           where: { planType: productConfig.planType },
+          update: {},
+          create: {
+            planType: productConfig.planType,
+            category: productConfig.category,
+            name: productConfig.name,
+            stripePriceId: `manual_${input.productId}`,
+            stripeProductId: input.productId,
+            sessionsIncluded: productConfig.sessionsIncluded,
+            commitmentMonths: productConfig.commitmentMonths,
+            priceInCents: productConfig.priceInCents,
+          },
         });
-
-        if (!plan) {
-          // Create the plan if it doesn't exist
-          plan = await ctx.db.membershipPlan.create({
-            data: {
-              planType: productConfig.planType,
-              category: productConfig.category,
-              name: productConfig.name,
-              stripePriceId: `manual_${input.productId}`,
-              stripeProductId: input.productId,
-              sessionsIncluded: productConfig.sessionsIncluded,
-              commitmentMonths: productConfig.commitmentMonths,
-              priceInCents: productConfig.priceInCents,
-            },
-          });
-        }
+        console.log("[createMember] Using plan:", plan.planType);
       } else {
-        // Create a custom plan
-        const customPlanType = `CUSTOM_${Date.now()}` as any;
-        const isUnlimited = !input.customSessions;
-
-        plan = await ctx.db.membershipPlan.create({
-          data: {
-            planType: "FREE_TRIAL", // Use FREE_TRIAL as a fallback type for custom plans
-            category: isUnlimited ? "MONTHLY_SUBSCRIPTION" : "FLEXI_PACKAGE",
+        // For custom plans, use FREE_TRIAL
+        plan = await ctx.db.membershipPlan.upsert({
+          where: { planType: "FREE_TRIAL" },
+          update: {},
+          create: {
+            planType: "FREE_TRIAL",
+            category: input.customSessions ? "FLEXI_PACKAGE" : "MONTHLY_SUBSCRIPTION",
             name: input.customPlanName || "Custom Plan",
             stripePriceId: `custom_${Date.now()}`,
             stripeProductId: `custom_${Date.now()}`,
@@ -331,12 +358,13 @@ export const usersRouter = createTRPCRouter({
             priceInCents: input.amountPaidCents,
           },
         });
+        console.log("[createMember] Using custom plan");
       }
 
-      // Create the user membership
+      // Step 4: Create the user membership
       const membership = await ctx.db.userMembership.create({
         data: {
-          userId: user.id,
+          userId: dbUser.id,
           planId: plan.id,
           status: "ACTIVE",
           sessionsRemaining: input.sessionsIncluded,
@@ -352,11 +380,15 @@ export const usersRouter = createTRPCRouter({
         },
       });
 
-      // Send welcome email
+      console.log("[createMember] Created membership:", membership.id);
+
+      // Step 5: Send welcome email
       await sendWelcomeEmail({
         to: input.email,
         firstName: input.firstName,
       });
+
+      console.log("[createMember] Welcome email sent to:", input.email);
 
       return membership;
     }),

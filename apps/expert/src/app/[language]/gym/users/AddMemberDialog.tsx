@@ -218,7 +218,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
               <PopoverContent className="w-[400px] p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Search plans..." />
-                  <CommandList>
+                  <CommandList className="max-h-[300px] overflow-y-auto">
                     <CommandEmpty>No plan found.</CommandEmpty>
                     <CommandGroup>
                       <CommandItem
