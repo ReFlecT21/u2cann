@@ -216,22 +216,22 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
           <div className="space-y-4">
             {/* Membership Status for signed-in users */}
             {isSignedIn && isLoaded && (
-              <div className="border rounded-lg p-3 bg-gray-50">
+              <div className="border border-border rounded-lg p-3 bg-muted/50">
                 {membershipLoading ? (
-                  <div className="animate-pulse h-6 bg-gray-200 rounded w-32" />
+                  <div className="animate-pulse h-6 bg-muted rounded w-32" />
                 ) : membership?.isValid ? (
                   <div className="flex items-center gap-2">
                     {membership.type === "subscription" ? (
                       <>
-                        <Infinity className="h-4 w-4 text-green-600" />
-                        <span className="text-sm font-medium text-green-700">
+                        <Infinity className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <span className="text-sm font-medium text-green-700 dark:text-green-300">
                           Unlimited membership active
                         </span>
                       </>
                     ) : (
                       <>
-                        <CreditCard className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-medium text-blue-700">
+                        <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
                           {membership.sessionsRemaining} sessions remaining
                         </span>
                       </>
@@ -239,8 +239,8 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-yellow-600" />
-                    <span className="text-sm font-medium text-yellow-700">
+                    <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                    <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
                       No active membership
                     </span>
                   </div>
@@ -250,17 +250,17 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
 
             {/* Session Details */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar className="h-4 w-4" />
                 <span>{formatDate(session.startTime)}</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Clock className="h-4 w-4" />
                 <span>
                   {formatTime(session.startTime)} - {formatTime(session.endTime)}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <User className="h-4 w-4" />
                 <span>
                   {session.classType.isOpenGym
@@ -268,7 +268,7 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
                     : session.instructor.name}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Users className="h-4 w-4" />
                 <SpotsBadge
                   availableSpots={availableSpots}
@@ -278,7 +278,7 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
             </div>
 
             {session.classType.description && (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 {session.classType.description}
               </p>
             )}
@@ -322,10 +322,14 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
                 appearance={{
                   elements: {
                     rootBox: "w-full",
-                    card: "shadow-none p-0",
-                    headerTitle: "text-lg",
-                    headerSubtitle: "text-gray-500 text-sm",
-                    formButtonPrimary: "bg-gray-900 hover:bg-gray-800",
+                    card: "shadow-none p-0 bg-transparent",
+                    headerTitle: "text-lg text-foreground",
+                    headerSubtitle: "text-muted-foreground text-sm",
+                    formButtonPrimary: "bg-primary hover:bg-primary/90 text-primary-foreground",
+                    formFieldInput: "bg-background text-foreground border-input",
+                    formFieldLabel: "text-foreground",
+                    identityPreviewText: "text-foreground",
+                    identityPreviewEditButton: "text-primary",
                   },
                 }}
               />
@@ -333,10 +337,10 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+                <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">Or</span>
+                <span className="bg-background px-2 text-muted-foreground">Or</span>
               </div>
             </div>
 
@@ -349,7 +353,7 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
               >
                 Continue as Guest
               </Button>
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Book without signing in (membership not applied)
               </p>
             </div>
@@ -434,22 +438,22 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
 
         {step === "success" && (
           <div className="space-y-4 text-center">
-            <div className="mx-auto w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-              <Check className="h-6 w-6 text-green-600" />
+            <div className="mx-auto w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+              <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
 
             <div className="space-y-2">
-              <p className="text-gray-600">
-                Your spot for <strong>{session.classType.displayName}</strong>{" "}
+              <p className="text-muted-foreground">
+                Your spot for <strong className="text-foreground">{session.classType.displayName}</strong>{" "}
                 on {formatDate(session.startTime)} at{" "}
                 {formatTime(session.startTime)} has been confirmed.
               </p>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              <p className="text-sm text-gray-500">Confirmation Code</p>
+            <div className="bg-muted rounded-lg p-4 space-y-2">
+              <p className="text-sm text-muted-foreground">Confirmation Code</p>
               <div className="flex items-center justify-center gap-2">
-                <code className="text-lg font-mono font-bold">
+                <code className="text-lg font-mono font-bold text-foreground">
                   {confirmationCode}
                 </code>
                 <Button
@@ -459,13 +463,13 @@ export function BookingModal({ session, isOpen, onClose }: BookingModalProps) {
                   className="h-8 w-8 p-0"
                 >
                   {copied ? (
-                    <Check className="h-4 w-4 text-green-600" />
+                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : (
                     <Copy className="h-4 w-4" />
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted-foreground">
                 Save this code to manage your booking
               </p>
             </div>

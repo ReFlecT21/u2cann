@@ -52,17 +52,17 @@ export function ClassCard({ session, onClick }: ClassCardProps) {
       disabled={isFull}
       className={cn(
         "w-full text-left p-3 rounded-lg border transition-all duration-200",
-        "hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2",
+        "hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background",
         session.classType.isOpenGym
-          ? "border-amber-300 bg-amber-50 hover:bg-amber-100 focus:ring-amber-500"
-          : "border-gray-200 bg-white hover:bg-gray-50 focus:ring-blue-500",
+          ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 hover:bg-amber-100 dark:hover:bg-amber-900 focus:ring-amber-500"
+          : "border-border bg-card hover:bg-muted focus:ring-ring",
         isFull && "opacity-60 cursor-not-allowed"
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <span className={cn(
           "text-sm font-medium",
-          session.classType.isOpenGym ? "text-amber-700" : "text-gray-600"
+          session.classType.isOpenGym ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"
         )}>
           {formatTimeRange(session.startTime, session.endTime)}
         </span>
@@ -74,14 +74,14 @@ export function ClassCard({ session, onClick }: ClassCardProps) {
 
       <h3 className={cn(
         "mt-1 font-semibold",
-        session.classType.isOpenGym ? "text-amber-900" : "text-gray-900"
+        session.classType.isOpenGym ? "text-amber-900 dark:text-amber-200" : "text-foreground"
       )}>
         {session.classType.displayName}
       </h3>
 
       <p className={cn(
         "text-sm",
-        session.classType.isOpenGym ? "text-amber-700" : "text-gray-500"
+        session.classType.isOpenGym ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"
       )}>
         {session.classType.isOpenGym ? "Self-Guided" : session.instructor.name}
       </p>

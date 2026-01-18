@@ -31,9 +31,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             appearance={{
               elements: {
                 rootBox: "w-full",
-                card: "shadow-none",
-                headerTitle: "text-xl",
-                headerSubtitle: "text-gray-500",
+                card: "shadow-none bg-transparent",
+                headerTitle: "text-xl text-foreground",
+                headerSubtitle: "text-muted-foreground",
+                formButtonPrimary: "bg-primary hover:bg-primary/90 text-primary-foreground",
+                formFieldInput: "bg-background text-foreground border-input",
+                formFieldLabel: "text-foreground",
+                identityPreviewText: "text-foreground",
+                identityPreviewEditButton: "text-primary",
               },
             }}
           />

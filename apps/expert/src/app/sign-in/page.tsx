@@ -101,9 +101,9 @@ export default function CustomSignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header - matching /schedule style */}
-      <header className="bg-gray-900 text-white py-6">
+      <header className="bg-gray-900 dark:bg-gray-950 text-white py-6">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between mb-4">
             <Link href="/schedule" className="text-sm text-gray-400 hover:text-white transition-colors">
@@ -130,26 +130,26 @@ export default function CustomSignInPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center py-12 px-4 bg-gray-50">
+      <main className="flex-1 flex items-center justify-center py-12 px-4 bg-muted/50">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="bg-card rounded-2xl shadow-xl p-8 border border-border">
             {!pendingVerification ? (
               <>
                 {/* Email Form */}
                 <form onSubmit={handleEmailSubmit} className="space-y-6">
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                       Email address
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                       <Input
                         id="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Enter your email"
-                        className="pl-10 h-12 text-base text-gray-900 border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                        className="pl-10 h-12 text-base text-foreground bg-background border-input focus:border-ring focus:ring-ring"
                         required
                         disabled={isLoading}
                       />
@@ -157,7 +157,7 @@ export default function CustomSignInPage() {
                   </div>
 
                   {error && (
-                    <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                    <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
                       {error}
                     </div>
                   )}
@@ -165,7 +165,7 @@ export default function CustomSignInPage() {
                   <Button
                     type="submit"
                     disabled={isLoading || !email}
-                    className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-semibold text-base"
+                    className="w-full h-12 bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:hover:bg-gray-200 dark:text-gray-900 text-white font-semibold text-base"
                   >
                     {isLoading ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
@@ -183,16 +183,16 @@ export default function CustomSignInPage() {
               <>
                 {/* OTP Verification */}
                 <div className="text-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-900">Check your email</h2>
-                  <p className="mt-2 text-gray-600">
+                  <h2 className="text-xl font-bold text-foreground">Check your email</h2>
+                  <p className="mt-2 text-muted-foreground">
                     We sent a verification code to<br />
-                    <span className="font-medium text-gray-900">{email}</span>
+                    <span className="font-medium text-foreground">{email}</span>
                   </p>
                 </div>
 
                 <form onSubmit={handleCodeSubmit} className="space-y-6">
                   <div>
-                    <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="code" className="block text-sm font-medium text-foreground mb-2">
                       Verification code
                     </label>
                     <Input
@@ -201,7 +201,7 @@ export default function CustomSignInPage() {
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
                       placeholder="Enter 6-digit code"
-                      className="h-12 text-center text-xl tracking-widest font-mono border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                      className="h-12 text-center text-xl tracking-widest font-mono text-foreground bg-background border-input focus:border-ring focus:ring-ring"
                       maxLength={6}
                       required
                       disabled={isLoading}
@@ -210,7 +210,7 @@ export default function CustomSignInPage() {
                   </div>
 
                   {error && (
-                    <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                    <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
                       {error}
                     </div>
                   )}
@@ -218,7 +218,7 @@ export default function CustomSignInPage() {
                   <Button
                     type="submit"
                     disabled={isLoading || code.length < 6}
-                    className="w-full h-12 bg-gray-900 hover:bg-gray-800 text-white font-semibold text-base"
+                    className="w-full h-12 bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:hover:bg-gray-200 dark:text-gray-900 text-white font-semibold text-base"
                   >
                     {isLoading ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
@@ -232,7 +232,7 @@ export default function CustomSignInPage() {
                     variant="ghost"
                     onClick={handleBack}
                     disabled={isLoading}
-                    className="w-full text-gray-600 hover:text-gray-900"
+                    className="w-full text-muted-foreground hover:text-foreground"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Use a different email
@@ -245,7 +245,7 @@ export default function CustomSignInPage() {
       </main>
 
       {/* Footer - matching /schedule style */}
-      <footer className="bg-gray-900 text-white py-8">
+      <footer className="bg-gray-900 dark:bg-gray-950 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <p className="text-gray-400 text-sm">
             Sign in with your membership to book classes

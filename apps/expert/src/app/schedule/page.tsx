@@ -73,21 +73,21 @@ export default function SchedulePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-foreground">
             Unable to load schedule
           </h1>
-          <p className="mt-2 text-gray-500">{error.message}</p>
+          <p className="mt-2 text-muted-foreground">{error.message}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-gray-900 text-white py-6">
+      <header className="bg-gray-900 dark:bg-gray-950 text-white py-6">
         <div className="max-w-7xl mx-auto px-4">
           {/* Top Bar with Auth */}
           <div className="flex items-center justify-between mb-4">
@@ -137,7 +137,7 @@ export default function SchedulePage() {
       </header>
 
       {/* Navigation */}
-      <div className="border-b bg-gray-50 py-4">
+      <div className="border-b border-border bg-muted/50 py-4">
         <div className="max-w-7xl mx-auto px-4">
           <WeekNavigator
             weekStart={weekStart}
@@ -177,7 +177,7 @@ export default function SchedulePage() {
       />
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 mt-auto">
+      <footer className="bg-gray-900 dark:bg-gray-950 text-white py-8 mt-auto">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <p className="text-gray-400 text-sm">
             {isSignedIn

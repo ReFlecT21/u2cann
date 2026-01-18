@@ -72,8 +72,8 @@ export function WeeklyGrid({ sessions, weekStart, onSelectSession }: WeeklyGridP
         return (
           <div key={dayIndex} className="min-h-[400px]">
             {/* Day Header */}
-            <div className="mb-4 pb-2 border-b-2 border-gray-900">
-              <h2 className="text-lg font-bold tracking-wide">{DAYS[dayIndex]}</h2>
+            <div className="mb-4 pb-2 border-b-2 border-foreground">
+              <h2 className="text-lg font-bold tracking-wide text-foreground">{DAYS[dayIndex]}</h2>
             </div>
 
             {/* Sessions */}
@@ -87,7 +87,7 @@ export function WeeklyGrid({ sessions, weekStart, onSelectSession }: WeeklyGridP
                   />
                 ))
               ) : (
-                <p className="text-sm text-gray-400 italic">No classes scheduled</p>
+                <p className="text-sm text-muted-foreground italic">No classes scheduled</p>
               )}
             </div>
           </div>

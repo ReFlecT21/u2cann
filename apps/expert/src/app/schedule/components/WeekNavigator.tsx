@@ -54,7 +54,7 @@ export function WeekNavigator({
       </Button>
 
       <div className="text-center min-w-[220px]">
-        <p className="text-gray-600 text-sm">
+        <p className="text-muted-foreground text-sm">
           Schedule for {formatDateRange()}
         </p>
       </div>
