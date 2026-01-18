@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { STRIPE_PRODUCT_TO_PLAN } from "~/config/stripe-products";
 
 export const usersRouter = createTRPCRouter({
   // Get all users with membership and booking info (admin only)
@@ -227,4 +228,129 @@ export const usersRouter = createTRPCRouter({
       activeMemberships,
     };
   }),
+
+  // Create a new member manually (admin only)
+  createMember: protectedProcedure
+    .input(
+      z.object({
+        firstName: z.string().min(1),
+        lastName: z.string().min(1),
+        email: z.string().email(),
+        productId: z.string().nullable(), // Stripe product ID or null for custom
+        customPlanName: z.string().nullable(),
+        customSessions: z.number().int().positive().nullable(),
+        sessionsIncluded: z.number().int().positive().nullable(),
+        startDate: z.date(),
+        expiryDate: z.date().nullable(),
+        amountPaidCents: z.number().int().min(0),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.auth.userId;
+
+      // Check if user is admin
+      const currentUser = await ctx.db.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+
+      if (currentUser?.role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only admins can create members",
+        });
+      }
+
+      // Check if user with this email already exists
+      let user = await ctx.db.user.findUnique({
+        where: { email: input.email },
+      });
+
+      const fullName = `${input.firstName} ${input.lastName}`;
+
+      if (!user) {
+        // Create new user - generate a unique ID for non-Clerk users
+        const uniqueId = `manual_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        user = await ctx.db.user.create({
+          data: {
+            id: uniqueId,
+            email: input.email,
+            name: fullName,
+            role: "trainee",
+          },
+        });
+      }
+
+      // Get or create the membership plan
+      let plan;
+
+      if (input.productId) {
+        // Find existing plan from Stripe product
+        const productConfig = STRIPE_PRODUCT_TO_PLAN[input.productId];
+        if (!productConfig) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Invalid product ID",
+          });
+        }
+
+        plan = await ctx.db.membershipPlan.findUnique({
+          where: { planType: productConfig.planType },
+        });
+
+        if (!plan) {
+          // Create the plan if it doesn't exist
+          plan = await ctx.db.membershipPlan.create({
+            data: {
+              planType: productConfig.planType,
+              category: productConfig.category,
+              name: productConfig.name,
+              stripePriceId: `manual_${input.productId}`,
+              stripeProductId: input.productId,
+              sessionsIncluded: productConfig.sessionsIncluded,
+              commitmentMonths: productConfig.commitmentMonths,
+              priceInCents: productConfig.priceInCents,
+            },
+          });
+        }
+      } else {
+        // Create a custom plan
+        const customPlanType = `CUSTOM_${Date.now()}` as any;
+        const isUnlimited = !input.customSessions;
+
+        plan = await ctx.db.membershipPlan.create({
+          data: {
+            planType: "FREE_TRIAL", // Use FREE_TRIAL as a fallback type for custom plans
+            category: isUnlimited ? "MONTHLY_SUBSCRIPTION" : "FLEXI_PACKAGE",
+            name: input.customPlanName || "Custom Plan",
+            stripePriceId: `custom_${Date.now()}`,
+            stripeProductId: `custom_${Date.now()}`,
+            sessionsIncluded: input.customSessions,
+            commitmentMonths: null,
+            priceInCents: input.amountPaidCents,
+          },
+        });
+      }
+
+      // Create the user membership
+      const membership = await ctx.db.userMembership.create({
+        data: {
+          userId: user.id,
+          planId: plan.id,
+          status: "ACTIVE",
+          sessionsRemaining: input.sessionsIncluded,
+          sessionsUsed: 0,
+          currentPeriodStart: input.startDate,
+          currentPeriodEnd: input.expiryDate,
+          activatedAt: input.startDate,
+          expiresAt: input.expiryDate,
+        },
+        include: {
+          plan: true,
+          user: true,
+        },
+      });
+
+      return membership;
+    }),
 });

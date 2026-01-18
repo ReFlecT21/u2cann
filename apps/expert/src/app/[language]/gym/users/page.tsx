@@ -7,6 +7,7 @@ import { api } from "~/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@adh/ui/ui/card";
 import { Input } from "@adh/ui/ui/input";
 import { Badge } from "@adh/ui/ui/badge";
+import { Button } from "@adh/ui/ui/button";
 import {
   Table,
   TableBody,
@@ -23,8 +24,9 @@ import {
   SelectValue,
 } from "@adh/ui/ui/select";
 import { Skeleton } from "@adh/ui/ui/skeleton";
-import { Users, UserCheck, Shield, Dumbbell, CreditCard, Search } from "lucide-react";
+import { Users, UserCheck, Shield, Dumbbell, CreditCard, Search, UserPlus } from "lucide-react";
 import { AdminGuard } from "../../components/AdminGuard";
+import { AddMemberDialog } from "./AddMemberDialog";
 
 function getMembershipStatusColor(status: string | undefined) {
   switch (status) {
@@ -59,6 +61,7 @@ function getRoleBadgeVariant(role: string) {
 export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
 
   const { data: users, isLoading } = api.gym.users.getAll.useQuery({
     search: search || undefined,
@@ -70,11 +73,17 @@ export default function UsersPage() {
   return (
     <AdminGuard>
       <div className="space-y-6">
-        <header>
-          <h1 className="text-2xl font-bold">Users</h1>
-          <p className="text-muted-foreground">
-            Manage users and view membership information
-          </p>
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Users</h1>
+            <p className="text-muted-foreground">
+              Manage users and view membership information
+            </p>
+          </div>
+          <Button onClick={() => setAddMemberOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add Member
+          </Button>
         </header>
 
         {/* Stats Cards */}
@@ -263,6 +272,9 @@ export default function UsersPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Add Member Dialog */}
+        <AddMemberDialog open={addMemberOpen} onOpenChange={setAddMemberOpen} />
       </div>
     </AdminGuard>
   );
