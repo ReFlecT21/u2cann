@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { STRIPE_PRODUCT_TO_PLAN } from "~/config/stripe-products";
+import { sendWelcomeEmail } from "~/server/services/emailService";
 
 export const usersRouter = createTRPCRouter({
   // Get all users with membership and booking info (admin only)
@@ -349,6 +350,12 @@ export const usersRouter = createTRPCRouter({
           plan: true,
           user: true,
         },
+      });
+
+      // Send welcome email
+      await sendWelcomeEmail({
+        to: input.email,
+        firstName: input.firstName,
       });
 
       return membership;
