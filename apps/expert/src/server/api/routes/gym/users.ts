@@ -2,10 +2,17 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { STRIPE_PRODUCT_TO_PLAN } from "~/config/stripe-products";
 import { sendWelcomeEmail } from "~/server/services/emailService";
 
 export const usersRouter = createTRPCRouter({
+  // Get all membership plans for dropdown
+  getMembershipPlans: protectedProcedure.query(async ({ ctx }) => {
+    const plans = await ctx.db.membershipPlan.findMany({
+      orderBy: [{ category: "asc" }, { name: "asc" }],
+    });
+    return plans;
+  }),
+
   // Get all users with membership and booking info (admin only)
   getAll: protectedProcedure
     .input(
@@ -238,9 +245,7 @@ export const usersRouter = createTRPCRouter({
         firstName: z.string().min(1),
         lastName: z.string().min(1),
         email: z.string().email(),
-        productId: z.string().nullable(), // Stripe product ID or null for custom
-        customPlanName: z.string().nullable(),
-        customSessions: z.number().int().positive().nullable(),
+        planId: z.string(), // Membership plan ID from database
         sessionsIncluded: z.number().int().positive().nullable(),
         startDate: z.date(),
         expiryDate: z.date().nullable(),
@@ -315,51 +320,19 @@ export const usersRouter = createTRPCRouter({
         console.log("[createMember] Found existing DB user:", dbUser.id);
       }
 
-      // Step 3: Get or create the membership plan
-      let plan;
+      // Step 3: Get the membership plan from database
+      const plan = await ctx.db.membershipPlan.findUnique({
+        where: { id: input.planId },
+      });
 
-      if (input.productId) {
-        const productConfig = STRIPE_PRODUCT_TO_PLAN[input.productId];
-        if (!productConfig) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `Invalid product ID: ${input.productId}`,
-          });
-        }
-
-        plan = await ctx.db.membershipPlan.upsert({
-          where: { planType: productConfig.planType },
-          update: {},
-          create: {
-            planType: productConfig.planType,
-            category: productConfig.category,
-            name: productConfig.name,
-            stripePriceId: `manual_${input.productId}`,
-            stripeProductId: input.productId,
-            sessionsIncluded: productConfig.sessionsIncluded,
-            commitmentMonths: productConfig.commitmentMonths,
-            priceInCents: productConfig.priceInCents,
-          },
+      if (!plan) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid membership plan",
         });
-        console.log("[createMember] Using plan:", plan.planType);
-      } else {
-        // For custom plans, use FREE_TRIAL
-        plan = await ctx.db.membershipPlan.upsert({
-          where: { planType: "FREE_TRIAL" },
-          update: {},
-          create: {
-            planType: "FREE_TRIAL",
-            category: input.customSessions ? "FLEXI_PACKAGE" : "MONTHLY_SUBSCRIPTION",
-            name: input.customPlanName || "Custom Plan",
-            stripePriceId: `custom_${Date.now()}`,
-            stripeProductId: `custom_${Date.now()}`,
-            sessionsIncluded: input.customSessions,
-            commitmentMonths: null,
-            priceInCents: input.amountPaidCents,
-          },
-        });
-        console.log("[createMember] Using custom plan");
       }
+
+      console.log("[createMember] Using plan:", plan.planType);
 
       // Step 4: Create the user membership
       const membership = await ctx.db.userMembership.create({

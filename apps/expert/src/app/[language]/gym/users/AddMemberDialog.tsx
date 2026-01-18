@@ -27,7 +27,6 @@ import {
 import { UserPlus, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
-import { STRIPE_PRODUCT_TO_PLAN } from "~/config/stripe-products";
 import { format } from "date-fns";
 import { cn } from "@adh/ui";
 
@@ -36,28 +35,20 @@ interface AddMemberDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Get product options from stripe config
-const productOptions = Object.entries(STRIPE_PRODUCT_TO_PLAN).map(([productId, config]) => ({
-  id: productId,
-  name: config.name,
-  planType: config.planType,
-  category: config.category,
-  sessionsIncluded: config.sessionsIncluded,
-  priceInCents: config.priceInCents,
-  flexiExpiryMonths: config.flexiExpiryMonths,
-}));
-
 export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<string>("");
-  const [productPopoverOpen, setProductPopoverOpen] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [planPopoverOpen, setPlanPopoverOpen] = useState(false);
   const [customSessions, setCustomSessions] = useState<string>("");
   const [customPlanName, setCustomPlanName] = useState("");
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [expiryDate, setExpiryDate] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
+
+  // Fetch membership plans from database
+  const { data: plans = [] } = api.gym.users.getMembershipPlans.useQuery();
 
   const utils = api.useUtils();
 
@@ -79,8 +70,8 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
     setFirstName("");
     setLastName("");
     setEmail("");
-    setSelectedProduct("");
-    setProductPopoverOpen(false);
+    setSelectedPlanId("");
+    setPlanPopoverOpen(false);
     setCustomSessions("");
     setCustomPlanName("");
     setStartDate(format(new Date(), "yyyy-MM-dd"));
@@ -88,31 +79,30 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
     setAmountPaid("");
   };
 
-  // Auto-fill fields when product is selected
-  useEffect(() => {
-    if (selectedProduct && selectedProduct !== "custom") {
-      const product = productOptions.find((p) => p.id === selectedProduct);
-      if (product) {
-        // Set amount paid from product price
-        setAmountPaid((product.priceInCents / 100).toString());
+  // Get selected plan from database
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId);
 
-        // Calculate expiry date based on product
-        const start = new Date(startDate);
-        if (product.category === "FLEXI_PACKAGE" || product.category === "TRIAL") {
-          // Flexi packages expire in X months
-          const months = product.flexiExpiryMonths || 6;
-          const expiry = new Date(start);
-          expiry.setMonth(expiry.getMonth() + months);
-          setExpiryDate(format(expiry, "yyyy-MM-dd"));
-        } else if (product.category === "MONTHLY_SUBSCRIPTION") {
-          // Monthly subscriptions - set to 1 month from start
-          const expiry = new Date(start);
-          expiry.setMonth(expiry.getMonth() + 1);
-          setExpiryDate(format(expiry, "yyyy-MM-dd"));
-        }
+  // Auto-fill fields when plan is selected
+  useEffect(() => {
+    if (selectedPlan) {
+      // Set amount paid from plan price
+      setAmountPaid((selectedPlan.priceInCents / 100).toString());
+
+      // Calculate expiry date based on plan
+      const start = new Date(startDate);
+      if (selectedPlan.category === "FLEXI_PACKAGE" || selectedPlan.category === "TRIAL") {
+        // Flexi packages expire in 6 months by default
+        const expiry = new Date(start);
+        expiry.setMonth(expiry.getMonth() + 6);
+        setExpiryDate(format(expiry, "yyyy-MM-dd"));
+      } else if (selectedPlan.category === "MONTHLY_SUBSCRIPTION") {
+        // Monthly subscriptions - set to 1 month from start
+        const expiry = new Date(start);
+        expiry.setMonth(expiry.getMonth() + 1);
+        setExpiryDate(format(expiry, "yyyy-MM-dd"));
       }
     }
-  }, [selectedProduct, startDate]);
+  }, [selectedPlanId, startDate, selectedPlan]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,31 +112,22 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
       return;
     }
 
-    if (!selectedProduct) {
-      toast.error("Please select a product");
+    if (!selectedPlanId) {
+      toast.error("Please select a membership plan");
       return;
     }
-
-    const isCustom = selectedProduct === "custom";
-    const product = isCustom ? null : productOptions.find((p) => p.id === selectedProduct);
 
     createMember.mutate({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim().toLowerCase(),
-      productId: isCustom ? null : selectedProduct,
-      customPlanName: isCustom ? customPlanName.trim() : null,
-      customSessions: isCustom && customSessions ? parseInt(customSessions) : null,
-      sessionsIncluded: product?.sessionsIncluded ?? (isCustom && customSessions ? parseInt(customSessions) : null),
+      planId: selectedPlanId,
+      sessionsIncluded: selectedPlan?.sessionsIncluded ?? null,
       startDate: new Date(startDate),
       expiryDate: expiryDate ? new Date(expiryDate) : null,
       amountPaidCents: amountPaid ? Math.round(parseFloat(amountPaid) * 100) : 0,
     });
   };
-
-  const selectedProductConfig = selectedProduct && selectedProduct !== "custom"
-    ? productOptions.find((p) => p.id === selectedProduct)
-    : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -196,65 +177,46 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             />
           </div>
 
-          {/* Product Selection */}
+          {/* Plan Selection */}
           <div className="space-y-2">
             <Label>Membership Plan *</Label>
-            <Popover open={productPopoverOpen} onOpenChange={setProductPopoverOpen}>
+            <Popover open={planPopoverOpen} onOpenChange={setPlanPopoverOpen} modal={true}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
-                  aria-expanded={productPopoverOpen}
+                  aria-expanded={planPopoverOpen}
                   className="w-full justify-between font-normal"
                 >
-                  {selectedProduct === "custom"
-                    ? "Custom (Manual Entry)"
-                    : selectedProduct
-                      ? productOptions.find((p) => p.id === selectedProduct)?.name
-                      : "Search plans..."}
+                  {selectedPlan?.name || "Search plans..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0" align="start">
+              <PopoverContent className="w-[400px] p-0" align="start" side="bottom" sideOffset={4}>
                 <Command>
                   <CommandInput placeholder="Search plans..." />
-                  <CommandList className="max-h-[300px] overflow-y-auto">
+                  <CommandList className="max-h-[250px]">
                     <CommandEmpty>No plan found.</CommandEmpty>
                     <CommandGroup>
-                      <CommandItem
-                        value="custom"
-                        onSelect={() => {
-                          setSelectedProduct("custom");
-                          setProductPopoverOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedProduct === "custom" ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        Custom (Manual Entry)
-                      </CommandItem>
-                      {productOptions.map((product) => (
+                      {plans.map((plan) => (
                         <CommandItem
-                          key={product.id}
-                          value={product.name}
+                          key={plan.id}
+                          value={plan.name}
                           onSelect={() => {
-                            setSelectedProduct(product.id);
-                            setProductPopoverOpen(false);
+                            setSelectedPlanId(plan.id);
+                            setPlanPopoverOpen(false);
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              selectedProduct === product.id ? "opacity-100" : "opacity-0"
+                              selectedPlanId === plan.id ? "opacity-100" : "opacity-0"
                             )}
                           />
                           <div className="flex flex-col">
-                            <span>{product.name}</span>
+                            <span>{plan.name}</span>
                             <span className="text-xs text-muted-foreground">
-                              ${(product.priceInCents / 100).toFixed(2)} • {product.sessionsIncluded ? `${product.sessionsIncluded} sessions` : "Unlimited"}
+                              ${(plan.priceInCents / 100).toFixed(2)} • {plan.sessionsIncluded ? `${plan.sessionsIncluded} sessions` : "Unlimited"}
                             </span>
                           </div>
                         </CommandItem>
@@ -264,18 +226,18 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
                 </Command>
               </PopoverContent>
             </Popover>
-            {selectedProductConfig && (
+            {selectedPlan && (
               <p className="text-xs text-muted-foreground">
-                {selectedProductConfig.sessionsIncluded
-                  ? `${selectedProductConfig.sessionsIncluded} sessions`
+                {selectedPlan.sessionsIncluded
+                  ? `${selectedPlan.sessionsIncluded} sessions`
                   : "Unlimited sessions"}{" "}
-                • {selectedProductConfig.category.replace("_", " ")}
+                • {selectedPlan.category.replace("_", " ")}
               </p>
             )}
           </div>
 
-          {/* Custom Plan Fields */}
-          {selectedProduct === "custom" && (
+          {/* Custom Plan Fields - removed since we're using DB plans */}
+          {false && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="customPlanName">Custom Plan Name</Label>
