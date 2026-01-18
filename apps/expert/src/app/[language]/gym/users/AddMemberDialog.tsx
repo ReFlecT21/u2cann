@@ -12,17 +12,24 @@ import { Input } from "@adh/ui/ui/input";
 import { Label } from "@adh/ui/ui/label";
 import { Button } from "@adh/ui/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@adh/ui/ui/select";
-import { UserPlus, Loader2 } from "lucide-react";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@adh/ui/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@adh/ui/ui/popover";
+import { UserPlus, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { STRIPE_PRODUCT_TO_PLAN } from "~/config/stripe-products";
 import { format } from "date-fns";
+import { cn } from "@adh/ui";
 
 interface AddMemberDialogProps {
   open: boolean;
@@ -45,6 +52,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<string>("");
+  const [productPopoverOpen, setProductPopoverOpen] = useState(false);
   const [customSessions, setCustomSessions] = useState<string>("");
   const [customPlanName, setCustomPlanName] = useState("");
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -72,6 +80,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
     setLastName("");
     setEmail("");
     setSelectedProduct("");
+    setProductPopoverOpen(false);
     setCustomSessions("");
     setCustomPlanName("");
     setStartDate(format(new Date(), "yyyy-MM-dd"));
@@ -189,20 +198,72 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
 
           {/* Product Selection */}
           <div className="space-y-2">
-            <Label htmlFor="product">Membership Plan *</Label>
-            <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a plan..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                <SelectItem value="custom">Custom (Manual Entry)</SelectItem>
-                {productOptions.map((product) => (
-                  <SelectItem key={product.id} value={product.id}>
-                    {product.name} - ${(product.priceInCents / 100).toFixed(2)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Membership Plan *</Label>
+            <Popover open={productPopoverOpen} onOpenChange={setProductPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={productPopoverOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  {selectedProduct === "custom"
+                    ? "Custom (Manual Entry)"
+                    : selectedProduct
+                      ? productOptions.find((p) => p.id === selectedProduct)?.name
+                      : "Search plans..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search plans..." />
+                  <CommandList>
+                    <CommandEmpty>No plan found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="custom"
+                        onSelect={() => {
+                          setSelectedProduct("custom");
+                          setProductPopoverOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedProduct === "custom" ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        Custom (Manual Entry)
+                      </CommandItem>
+                      {productOptions.map((product) => (
+                        <CommandItem
+                          key={product.id}
+                          value={product.name}
+                          onSelect={() => {
+                            setSelectedProduct(product.id);
+                            setProductPopoverOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedProduct === product.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div className="flex flex-col">
+                            <span>{product.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ${(product.priceInCents / 100).toFixed(2)} • {product.sessionsIncluded ? `${product.sessionsIncluded} sessions` : "Unlimited"}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {selectedProductConfig && (
               <p className="text-xs text-muted-foreground">
                 {selectedProductConfig.sessionsIncluded
