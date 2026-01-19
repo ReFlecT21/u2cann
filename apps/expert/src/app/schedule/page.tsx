@@ -12,13 +12,13 @@ import { WeekNavigator } from "./components/WeekNavigator";
 import { BookingModal } from "./components/BookingModal";
 import { MembershipBadge } from "./components/MembershipBadge";
 
-// Get Monday of the current week (in UTC to avoid timezone issues)
+// Get Monday of the current week
 function getWeekStart(date: Date = new Date()): Date {
   const d = new Date(date);
-  const day = d.getUTCDay();
-  const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
-  d.setUTCDate(diff);
-  d.setUTCHours(0, 0, 0, 0);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
   return d;
 }
 

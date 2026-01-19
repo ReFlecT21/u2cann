@@ -32,13 +32,13 @@ interface WeeklyGridProps {
 const DAYS = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
 export function WeeklyGrid({ sessions, weekStart, onSelectSession }: WeeklyGridProps) {
-  // Group sessions by day of week (using UTC to match server)
+  // Group sessions by day of week
   const groupedByDay: Record<number, Session[]> = {};
 
   for (const session of sessions) {
     if (session.isCancelled) continue;
 
-    const dayOfWeek = new Date(session.startTime).getUTCDay();
+    const dayOfWeek = new Date(session.startTime).getDay();
     if (!groupedByDay[dayOfWeek]) {
       groupedByDay[dayOfWeek] = [];
     }
@@ -52,11 +52,11 @@ export function WeeklyGrid({ sessions, weekStart, onSelectSession }: WeeklyGridP
     );
   }
 
-  // Get dates for each day of the week (using UTC)
+  // Get dates for each day of the week
   const getDayDate = (dayIndex: number) => {
     const date = new Date(weekStart);
-    const diff = dayIndex - date.getUTCDay();
-    date.setUTCDate(date.getUTCDate() + diff);
+    const diff = dayIndex - date.getDay();
+    date.setDate(date.getDate() + diff);
     return date;
   };
 
