@@ -82,28 +82,29 @@ export const classTypesRouter = createTRPCRouter({
       });
     }),
 
-  // Delete class type
+  // Get session count for a class type (for delete confirmation)
+  getSessionCount: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const count = await ctx.db.classSession.count({
+        where: { classTypeId: input.id },
+      });
+      return { count };
+    }),
+
+  // Delete class type (cascades to sessions and templates)
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const classType = await ctx.db.gymClassType.findUnique({
         where: { id: input.id },
-        include: {
-          sessions: { take: 1 },
-        },
       });
 
       if (!classType) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Class type not found" });
       }
 
-      if (classType.sessions.length > 0) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Cannot delete class type with existing sessions",
-        });
-      }
-
+      // Delete will cascade to sessions and templates due to onDelete: Cascade in schema
       return ctx.db.gymClassType.delete({
         where: { id: input.id },
       });

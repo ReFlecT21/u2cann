@@ -27,6 +27,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@adh/ui/ui/dialog";
+import { AlertTriangle } from "lucide-react";
 import { Input } from "@adh/ui/ui/input";
 import { Textarea } from "@adh/ui/ui/text-area";
 import { Switch } from "@adh/ui/ui/switch";
@@ -44,6 +45,76 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+// Delete confirmation dialog component
+function DeleteConfirmDialog({
+  classType,
+  onClose,
+  onConfirm,
+  isDeleting,
+}: {
+  classType: ClassType | null;
+  onClose: () => void;
+  onConfirm: () => void;
+  isDeleting: boolean;
+}) {
+  const t = useTranslations("classTypesPage");
+
+  // Fetch session count when dialog opens
+  const { data: sessionData, isLoading } = api.gym.classTypes.getSessionCount.useQuery(
+    { id: classType?.id ?? "" },
+    { enabled: !!classType }
+  );
+
+  const sessionCount = sessionData?.count ?? 0;
+
+  return (
+    <Dialog open={!!classType} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("confirmDeleteTitle")}</DialogTitle>
+        </DialogHeader>
+
+        {isLoading ? (
+          <p className="text-muted-foreground">Loading...</p>
+        ) : (
+          <>
+            <p>
+              {t("confirmDeleteMessage", {
+                name: classType?.displayName || "Unknown",
+              })}
+            </p>
+
+            {sessionCount > 0 && (
+              <div className="flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4 mt-2">
+                <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-medium text-destructive">Warning: This will delete {sessionCount} session{sessionCount !== 1 ? 's' : ''}</p>
+                  <p className="text-sm text-muted-foreground">
+                    All scheduled classes and their bookings for this class type will be permanently deleted. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={onClose} disabled={isDeleting}>
+            {t("cancel")}
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={isLoading || isDeleting}
+          >
+            {isDeleting ? "Deleting..." : sessionCount > 0 ? `Delete ${sessionCount} session${sessionCount !== 1 ? 's' : ''} & class type` : t("confirm")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function ClassTypesPage() {
   const t = useTranslations("classTypesPage");
@@ -319,37 +390,17 @@ export default function ClassTypesPage() {
           <DataTable columns={columns} data={classTypes} />
         </div>
 
-        <Dialog
-          open={!!deletingClassType}
-          onOpenChange={(isOpen) => !isOpen && setDeletingClassType(null)}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t("confirmDeleteTitle")}</DialogTitle>
-            </DialogHeader>
-            <p>
-              {t("confirmDeleteMessage", {
-                name: deletingClassType?.displayName || "Unknown",
-              })}
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDeletingClassType(null)}>
-                {t("cancel")}
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  if (deletingClassType) {
-                    deleteClassType.mutate({ id: deletingClassType.id });
-                    setDeletingClassType(null);
-                  }
-                }}
-              >
-                {t("confirm")}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <DeleteConfirmDialog
+          classType={deletingClassType}
+          onClose={() => setDeletingClassType(null)}
+          onConfirm={() => {
+            if (deletingClassType) {
+              deleteClassType.mutate({ id: deletingClassType.id });
+              setDeletingClassType(null);
+            }
+          }}
+          isDeleting={deleteClassType.isPending}
+        />
       </>
     </AdminGuard>
   );
