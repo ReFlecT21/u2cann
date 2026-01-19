@@ -32,11 +32,12 @@ export function WeekNavigator({
   const isCurrentWeek = () => {
     const today = new Date();
     const todayWeekStart = new Date(today);
-    todayWeekStart.setDate(today.getDate() - today.getDay());
-    todayWeekStart.setHours(0, 0, 0, 0);
+    const day = todayWeekStart.getUTCDay();
+    todayWeekStart.setUTCDate(todayWeekStart.getUTCDate() - day + (day === 0 ? -6 : 1));
+    todayWeekStart.setUTCHours(0, 0, 0, 0);
 
     const compareStart = new Date(weekStart);
-    compareStart.setHours(0, 0, 0, 0);
+    compareStart.setUTCHours(0, 0, 0, 0);
 
     return todayWeekStart.getTime() === compareStart.getTime();
   };

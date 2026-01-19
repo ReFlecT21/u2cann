@@ -87,10 +87,10 @@ export const publicScheduleRouter = createTRPCRouter({
         return true; // Session is not blocked
       });
 
-      // Group sessions by day of week
+      // Group sessions by day of week (using UTC for consistency)
       const groupedByDay: Record<number, typeof filteredSessions> = {};
       for (const session of filteredSessions) {
-        const dayOfWeek = session.startTime.getDay();
+        const dayOfWeek = session.startTime.getUTCDay();
         if (!groupedByDay[dayOfWeek]) {
           groupedByDay[dayOfWeek] = [];
         }

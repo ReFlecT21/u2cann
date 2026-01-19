@@ -248,10 +248,15 @@ export const sessionsRouter = createTRPCRouter({
 
       const sessionsToCreate: any[] = [];
 
-      // Iterate through each day in the date range
+      // Iterate through each day in the date range (using UTC to avoid timezone issues)
       const currentDate = new Date(input.startDate);
-      while (currentDate <= input.endDate) {
-        const dayOfWeek = currentDate.getDay();
+      currentDate.setUTCHours(0, 0, 0, 0);
+
+      const endDate = new Date(input.endDate);
+      endDate.setUTCHours(23, 59, 59, 999);
+
+      while (currentDate <= endDate) {
+        const dayOfWeek = currentDate.getUTCDay();
 
         // Find templates for this day
         const dayTemplates = templates.filter((t) => t.dayOfWeek === dayOfWeek);
@@ -266,10 +271,10 @@ export const sessionsRouter = createTRPCRouter({
           const endMin = Number(endParts[1]) || 0;
 
           const startTime = new Date(currentDate);
-          startTime.setHours(startHour, startMin, 0, 0);
+          startTime.setUTCHours(startHour, startMin, 0, 0);
 
           const endTime = new Date(currentDate);
-          endTime.setHours(endHour, endMin, 0, 0);
+          endTime.setUTCHours(endHour, endMin, 0, 0);
 
           // Check if session already exists
           const existing = await ctx.db.classSession.findFirst({
@@ -292,7 +297,7 @@ export const sessionsRouter = createTRPCRouter({
           }
         }
 
-        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
       }
 
       // Batch create sessions
