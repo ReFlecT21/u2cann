@@ -97,6 +97,8 @@ export const usersRouter = createTRPCRouter({
             currentPeriodEnd: activeMembership.currentPeriodEnd,
             expiresAt: activeMembership.expiresAt,
             activatedAt: activeMembership.activatedAt,
+            paymentMethod: activeMembership.paymentMethod,
+            paymentMethodDetails: activeMembership.paymentMethodDetails,
           } : null,
           // Booking stats
           totalBookings: user._count.classBookings,
@@ -250,6 +252,8 @@ export const usersRouter = createTRPCRouter({
         startDate: z.date(),
         expiryDate: z.date().nullable(),
         amountPaidCents: z.number().int().min(0),
+        paymentMethod: z.string().optional(), // e.g., "card", "paynow", "cash", "bank_transfer"
+        paymentMethodDetails: z.string().optional(), // e.g., "Visa •••• 4242", "PayNow", "Cash"
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -346,6 +350,8 @@ export const usersRouter = createTRPCRouter({
           currentPeriodEnd: input.expiryDate,
           activatedAt: input.startDate,
           expiresAt: input.expiryDate,
+          paymentMethod: input.paymentMethod,
+          paymentMethodDetails: input.paymentMethodDetails,
         },
         include: {
           plan: true,

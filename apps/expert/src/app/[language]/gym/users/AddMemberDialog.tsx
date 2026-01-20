@@ -24,7 +24,22 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@adh/ui/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@adh/ui/ui/select";
 import { UserPlus, Loader2, Check, ChevronsUpDown } from "lucide-react";
+
+const PAYMENT_METHODS = [
+  { value: "cash", label: "Cash", details: "Cash" },
+  { value: "paynow", label: "PayNow", details: "PayNow" },
+  { value: "bank_transfer", label: "Bank Transfer", details: "Bank Transfer" },
+  { value: "card", label: "Card", details: "Card" },
+  { value: "grabpay", label: "GrabPay", details: "GrabPay" },
+] as const;
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -46,6 +61,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
   const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [expiryDate, setExpiryDate] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<string>("");
 
   // Fetch membership plans from database
   const { data: plans = [] } = api.gym.users.getMembershipPlans.useQuery();
@@ -77,6 +93,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
     setStartDate(format(new Date(), "yyyy-MM-dd"));
     setExpiryDate("");
     setAmountPaid("");
+    setPaymentMethod("");
   };
 
   // Get selected plan from database
@@ -117,6 +134,8 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
       return;
     }
 
+    const selectedPaymentMethod = PAYMENT_METHODS.find((pm) => pm.value === paymentMethod);
+
     createMember.mutate({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -126,6 +145,8 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
       startDate: new Date(startDate),
       expiryDate: expiryDate ? new Date(expiryDate) : null,
       amountPaidCents: amountPaid ? Math.round(parseFloat(amountPaid) * 100) : 0,
+      paymentMethod: paymentMethod || undefined,
+      paymentMethodDetails: selectedPaymentMethod?.details || undefined,
     });
   };
 
@@ -285,18 +306,35 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             </div>
           </div>
 
-          {/* Amount Paid */}
-          <div className="space-y-2">
-            <Label htmlFor="amountPaid">Amount Paid (SGD)</Label>
-            <Input
-              id="amountPaid"
-              type="number"
-              step="0.01"
-              min="0"
-              value={amountPaid}
-              onChange={(e) => setAmountPaid(e.target.value)}
-              placeholder="0.00"
-            />
+          {/* Amount Paid and Payment Method */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="amountPaid">Amount Paid (SGD)</Label>
+              <Input
+                id="amountPaid"
+                type="number"
+                step="0.01"
+                min="0"
+                value={amountPaid}
+                onChange={(e) => setAmountPaid(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select method" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHODS.map((method) => (
+                    <SelectItem key={method.value} value={method.value}>
+                      {method.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <DialogFooter>

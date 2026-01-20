@@ -176,6 +176,7 @@ export default function UsersPage() {
                     <TableHead>Role</TableHead>
                     <TableHead>Membership</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Payment</TableHead>
                     <TableHead>Sessions</TableHead>
                     <TableHead>Signed Up</TableHead>
                     <TableHead>Expires</TableHead>
@@ -185,7 +186,7 @@ export default function UsersPage() {
                 <TableBody>
                   {users?.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                         No users found
                       </TableCell>
                     </TableRow>
@@ -224,6 +225,15 @@ export default function UsersPage() {
                             </Badge>
                           ) : (
                             "—"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {user.membership?.paymentMethodDetails ? (
+                            <span className="text-sm">{user.membership.paymentMethodDetails}</span>
+                          ) : user.membership?.paymentMethod ? (
+                            <span className="text-sm capitalize">{user.membership.paymentMethod}</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
                         <TableCell>
