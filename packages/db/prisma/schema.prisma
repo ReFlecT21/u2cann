@@ -253,6 +253,8 @@ model UserMembership {
   plan                 MembershipPlan   @relation(fields: [planId], references: [id])
   stripeCustomerId     String?          // Can be null for some checkout types
   stripeSubscriptionId String?
+  paymentMethod        String?          // e.g., "card", "paynow", "grabpay"
+  paymentMethodDetails String?          // e.g., "visa •••• 4242" or "PayNow"
   status               MembershipStatus @default(PENDING_PAYMENT)
   sessionsRemaining    Int?
   sessionsUsed         Int              @default(0)

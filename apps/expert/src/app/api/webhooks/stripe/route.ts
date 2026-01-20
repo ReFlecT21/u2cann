@@ -32,8 +32,38 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
+  // Get payment method details
+  let paymentMethod: string | null = null;
+  let paymentMethodDetails: string | null = null;
+
+  if (session.payment_intent) {
+    const paymentIntent = await stripe!.paymentIntents.retrieve(
+      session.payment_intent as string,
+      { expand: ["payment_method"] }
+    );
+
+    const pm = paymentIntent.payment_method as Stripe.PaymentMethod | null;
+    if (pm) {
+      paymentMethod = pm.type; // "card", "paynow", "grabpay", etc.
+
+      // Build human-readable details
+      if (pm.type === "card" && pm.card) {
+        const brand = pm.card.brand?.charAt(0).toUpperCase() + pm.card.brand?.slice(1);
+        paymentMethodDetails = `${brand} •••• ${pm.card.last4}`;
+      } else if (pm.type === "paynow") {
+        paymentMethodDetails = "PayNow";
+      } else if (pm.type === "grabpay") {
+        paymentMethodDetails = "GrabPay";
+      } else {
+        paymentMethodDetails = pm.type.charAt(0).toUpperCase() + pm.type.slice(1);
+      }
+
+      console.log(`[Stripe Webhook] Payment method: ${paymentMethod} (${paymentMethodDetails})`);
+    }
+  }
+
   // Get line items to determine the product/plan
-  const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
+  const lineItems = await stripe!.checkout.sessions.listLineItems(session.id, {
     expand: ["data.price.product"],
   });
 
@@ -104,8 +134,29 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   if (planConfig.category === "MONTHLY_SUBSCRIPTION" && subscriptionId) {
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscription = await stripe!.subscriptions.retrieve(subscriptionId, {
+      expand: ["default_payment_method"],
+    });
     currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+
+    // For subscriptions, get payment method from subscription if not already set
+    if (!paymentMethod && subscription.default_payment_method) {
+      const pm = subscription.default_payment_method as Stripe.PaymentMethod;
+      paymentMethod = pm.type;
+
+      if (pm.type === "card" && pm.card) {
+        const brand = pm.card.brand?.charAt(0).toUpperCase() + pm.card.brand?.slice(1);
+        paymentMethodDetails = `${brand} •••• ${pm.card.last4}`;
+      } else if (pm.type === "paynow") {
+        paymentMethodDetails = "PayNow";
+      } else if (pm.type === "grabpay") {
+        paymentMethodDetails = "GrabPay";
+      } else {
+        paymentMethodDetails = pm.type.charAt(0).toUpperCase() + pm.type.slice(1);
+      }
+
+      console.log(`[Stripe Webhook] Subscription payment method: ${paymentMethod} (${paymentMethodDetails})`);
+    }
 
     if (planConfig.commitmentMonths) {
       commitmentEndDate = new Date(now);
@@ -122,6 +173,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       planId: plan.id,
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscriptionId,
+      paymentMethod,
+      paymentMethodDetails,
       status: "ACTIVE",
       sessionsRemaining: planConfig.sessionsIncluded,
       currentPeriodStart: now,
