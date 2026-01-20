@@ -234,6 +234,7 @@ export const sessionsRouter = createTRPCRouter({
       z.object({
         startDate: z.date(),
         endDate: z.date(),
+        timezoneOffset: z.number().optional(), // Timezone offset in minutes (e.g., -480 for UTC+8)
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -248,16 +249,34 @@ export const sessionsRouter = createTRPCRouter({
 
       const sessionsToCreate: any[] = [];
 
+      // Use timezone offset if provided, otherwise assume UTC+8 (Singapore)
+      // timezoneOffset is in minutes, negative for east of UTC (e.g., -480 for UTC+8)
+      const offsetMinutes = input.timezoneOffset ?? -480; // Default to Singapore (UTC+8)
+      const offsetHours = -offsetMinutes / 60; // Convert to hours offset to subtract
+
       // Iterate through each day in the date range
+      // Use UTC methods to avoid server timezone issues
       const currentDate = new Date(input.startDate);
-      while (currentDate <= input.endDate) {
-        const dayOfWeek = currentDate.getDay();
+
+      // Normalize to start of day in user's timezone
+      // Add offset to convert from UTC to local, then round to start of day
+      currentDate.setUTCHours(0, 0, 0, 0);
+      currentDate.setUTCMinutes(currentDate.getUTCMinutes() - offsetMinutes);
+
+      const endDate = new Date(input.endDate);
+      endDate.setUTCHours(23, 59, 59, 999);
+      endDate.setUTCMinutes(endDate.getUTCMinutes() - offsetMinutes);
+
+      while (currentDate <= endDate) {
+        // Calculate day of week in user's local timezone
+        const localDate = new Date(currentDate.getTime() - offsetMinutes * 60 * 1000);
+        const dayOfWeek = localDate.getUTCDay();
 
         // Find templates for this day
         const dayTemplates = templates.filter((t) => t.dayOfWeek === dayOfWeek);
 
         for (const template of dayTemplates) {
-          // Parse start and end times
+          // Parse start and end times (these are in local timezone)
           const startParts = template.startTime.split(":");
           const endParts = template.endTime.split(":");
           const startHour = Number(startParts[0]) || 0;
@@ -265,11 +284,12 @@ export const sessionsRouter = createTRPCRouter({
           const endHour = Number(endParts[0]) || 0;
           const endMin = Number(endParts[1]) || 0;
 
+          // Create start time in UTC by subtracting timezone offset
           const startTime = new Date(currentDate);
-          startTime.setHours(startHour, startMin, 0, 0);
+          startTime.setUTCHours(startHour - offsetHours, startMin, 0, 0);
 
           const endTime = new Date(currentDate);
-          endTime.setHours(endHour, endMin, 0, 0);
+          endTime.setUTCHours(endHour - offsetHours, endMin, 0, 0);
 
           // Check if session already exists
           const existing = await ctx.db.classSession.findFirst({
@@ -292,7 +312,8 @@ export const sessionsRouter = createTRPCRouter({
           }
         }
 
-        currentDate.setDate(currentDate.getDate() + 1);
+        // Move to next day
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
       }
 
       // Batch create sessions

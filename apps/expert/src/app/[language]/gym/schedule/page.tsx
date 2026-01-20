@@ -158,6 +158,7 @@ export default function SchedulePage() {
     generateSessions.mutate({
       startDate: new Date(values.startDate),
       endDate: new Date(values.endDate),
+      timezoneOffset: new Date().getTimezoneOffset(), // Pass client timezone (e.g., -480 for UTC+8)
     });
   }
 
