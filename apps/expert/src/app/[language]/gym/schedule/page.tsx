@@ -37,7 +37,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@adh/ui/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@adh/ui/ui/card";
 import { Badge } from "@adh/ui/ui/badge";
 import { toast } from "sonner";
-import { Calendar, Clock, Users, Plus, Wand2 } from "lucide-react";
+import { Calendar, Clock, Users, Plus, Wand2, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@adh/ui";
 
 const DAYS_OF_WEEK = [
   "Sunday",
@@ -66,20 +67,64 @@ const generateFormSchema = z.object({
 type TemplateFormValues = z.infer<typeof templateFormSchema>;
 type GenerateFormValues = z.infer<typeof generateFormSchema>;
 
+// Helper to get Monday of a week
+function getWeekStart(date: Date = new Date()): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 export default function SchedulePage() {
   const t = useTranslations("schedulePage");
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [weekStart, setWeekStart] = useState(() => getWeekStart());
   const ctx = api.useContext();
+
+  // Calculate week end (Sunday)
+  const weekEnd = addDays(weekStart, 6);
 
   // Fetch data
   const { data: templates = [] } = api.gym.templates.getAll.useQuery();
   const { data: sessions = [] } = api.gym.sessions.getAll.useQuery({
-    startDate: startOfWeek(new Date()),
-    endDate: addDays(endOfWeek(new Date()), 7),
+    startDate: weekStart,
+    endDate: addDays(weekEnd, 1), // Include full Sunday
   });
   const { data: classTypes = [] } = api.gym.classTypes.getAll.useQuery();
   const { data: instructors = [] } = api.gym.instructors.getAll.useQuery();
+
+  // Week navigation
+  const handlePreviousWeek = () => {
+    setWeekStart((prev) => addDays(prev, -7));
+  };
+
+  const handleNextWeek = () => {
+    setWeekStart((prev) => addDays(prev, 7));
+  };
+
+  // Group sessions by day of week
+  const sessionsByDay: Record<number, typeof sessions> = {};
+  for (let i = 0; i < 7; i++) {
+    sessionsByDay[i] = [];
+  }
+  for (const session of sessions) {
+    if (!session.isCancelled) {
+      const dayOfWeek = new Date(session.startTime).getDay();
+      if (!sessionsByDay[dayOfWeek]) {
+        sessionsByDay[dayOfWeek] = [];
+      }
+      sessionsByDay[dayOfWeek].push(session);
+    }
+  }
+  // Sort each day's sessions by time
+  for (const day in sessionsByDay) {
+    sessionsByDay[Number(day)]?.sort(
+      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+  }
 
   // Mutations
   const createTemplate = api.gym.templates.create.useMutation({
@@ -442,69 +487,105 @@ export default function SchedulePage() {
           </TabsContent>
 
           <TabsContent value="sessions" className="space-y-4">
-            <div className="grid gap-4">
-              {sessions.length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    No sessions found. Generate sessions from templates or create them
-                    manually.
-                  </CardContent>
-                </Card>
-              ) : (
-                sessions.map((session) => (
-                  <Card key={session.id}>
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+            {/* Week Navigation */}
+            <div className="flex items-center justify-between">
+              <Button variant="outline" size="sm" onClick={handlePreviousWeek}>
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <div className="text-center">
+                <h3 className="font-semibold">
+                  {format(weekStart, "MMM d")} - {format(weekEnd, "MMM d, yyyy")}
+                </h3>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleNextWeek}>
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+
+            {/* Weekly Sessions Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+              {DAYS_OF_WEEK.map((day, dayIndex) => {
+                // Calculate the date for this day column
+                const dayOffset = dayIndex === 0 ? 6 : dayIndex - 1; // Monday = 0, Sunday = 6
+                const dayDate = addDays(weekStart, dayOffset);
+                const daySessions = sessionsByDay[dayIndex] || [];
+
+                return (
+                  <Card key={dayIndex} className="min-h-[200px]">
+                    <CardHeader className="py-3 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        <div>{day}</div>
+                        <div className="text-xs text-muted-foreground font-normal">
+                          {format(dayDate, "MMM d")}
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 p-3 pt-0">
+                      {daySessions.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-4">
+                          No classes
+                        </p>
+                      ) : (
+                        daySessions.map((session) => (
                           <div
-                            className="w-1 h-12 rounded"
+                            key={session.id}
+                            className={cn(
+                              "rounded-md border p-2 text-sm space-y-1 transition-colors",
+                              session.isCancelled && "opacity-50 bg-muted"
+                            )}
                             style={{
-                              backgroundColor: session.classType?.color || "#3B82F6",
+                              borderLeftWidth: 3,
+                              borderLeftColor: session.classType?.color || "#3B82F6",
                             }}
-                          />
-                          <div>
-                            <div className="font-medium flex items-center gap-2">
+                          >
+                            <div className="font-medium text-xs flex items-center gap-1">
                               {session.classType?.displayName}
                               {session.isCancelled && (
-                                <Badge variant="destructive">Cancelled</Badge>
+                                <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                                  Cancelled
+                                </Badge>
                               )}
                             </div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-4">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {format(new Date(session.startTime), "MMM d, yyyy")}
+                            <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                              <Clock className="h-3 w-3" />
+                              {format(new Date(session.startTime), "h:mm a")}
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground truncate max-w-[80px]">
+                                {session.instructor?.name}
                               </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {format(new Date(session.startTime), "h:mm a")} -{" "}
-                                {format(new Date(session.endTime), "h:mm a")}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Users className="h-3 w-3" />
+                              <Badge
+                                variant={
+                                  session.bookedCount >= session.capacity
+                                    ? "destructive"
+                                    : session.bookedCount > session.capacity * 0.8
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                                className="text-[10px] px-1 py-0"
+                              >
                                 {session.bookedCount}/{session.capacity}
-                              </span>
+                              </Badge>
                             </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {session.instructor?.name}
-                            </div>
+                            {!session.isCancelled && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full mt-1 h-6 text-xs text-destructive hover:text-destructive"
+                                onClick={() => cancelSession.mutate({ id: session.id })}
+                              >
+                                Cancel
+                              </Button>
+                            )}
                           </div>
-                        </div>
-                        {!session.isCancelled && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              cancelSession.mutate({ id: session.id })
-                            }
-                          >
-                            Cancel
-                          </Button>
-                        )}
-                      </div>
+                        ))
+                      )}
                     </CardContent>
                   </Card>
-                ))
-              )}
+                );
+              })}
             </div>
           </TabsContent>
         </Tabs>
