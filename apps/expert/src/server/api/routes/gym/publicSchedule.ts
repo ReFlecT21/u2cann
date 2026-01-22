@@ -44,10 +44,13 @@ export const publicScheduleRouter = createTRPCRouter({
         });
       }
 
+      // Filter out past sessions - only show sessions that haven't started yet
+      const now = new Date();
+
       const sessions = await ctx.db.classSession.findMany({
         where: {
           startTime: {
-            gte: input.weekStartDate,
+            gte: now > input.weekStartDate ? now : input.weekStartDate, // Don't show past classes
             lt: weekEnd,
           },
           isCancelled: false,
