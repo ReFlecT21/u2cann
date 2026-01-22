@@ -188,6 +188,9 @@ export default function CustomSignInPage() {
                     We sent a verification code to<br />
                     <span className="font-medium text-foreground">{email}</span>
                   </p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Can't find it? Check your spam or junk folder.
+                  </p>
                 </div>
 
                 <form onSubmit={handleCodeSubmit} className="space-y-6">
