@@ -185,6 +185,27 @@ export const publicScheduleRouter = createTRPCRouter({
             });
           }
 
+          // 3.5 Check 4-hour advance booking rule (only if no one has booked yet)
+          if (session.bookedCount === 0) {
+            const sessionDetails = await tx.classSession.findUnique({
+              where: { id: input.sessionId },
+              select: { startTime: true },
+            });
+
+            if (sessionDetails) {
+              const now = new Date();
+              const classTime = new Date(sessionDetails.startTime);
+              const hoursUntilClass = (classTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+              if (hoursUntilClass < 4) {
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: "Bookings must be made at least 4 hours in advance when no one else has booked. Please check back later or choose another class.",
+                });
+              }
+            }
+          }
+
           // 4. Check for duplicate booking (same email for same session)
           const existingBooking = await tx.classBooking.findFirst({
             where: {
@@ -412,6 +433,27 @@ export const publicScheduleRouter = createTRPCRouter({
               code: "BAD_REQUEST",
               message: "This class has been cancelled.",
             });
+          }
+
+          // Check 4-hour advance booking rule (only if no one has booked yet)
+          if (session.bookedCount === 0) {
+            const sessionDetails = await tx.classSession.findUnique({
+              where: { id: input.sessionId },
+              select: { startTime: true },
+            });
+
+            if (sessionDetails) {
+              const now = new Date();
+              const classTime = new Date(sessionDetails.startTime);
+              const hoursUntilClass = (classTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+              if (hoursUntilClass < 4) {
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: "Bookings must be made at least 4 hours in advance when no one else has booked. Please check back later or choose another class.",
+                });
+              }
+            }
           }
 
           // Check for duplicate booking
