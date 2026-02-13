@@ -561,6 +561,16 @@ async function seedMembershipPlans() {
       priceInCents: 17500,
     },
     {
+      planType: "MONTHLY_ADULT_1YR_DEPRECATED",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Adults Monthly Membership - 12 Months (Deprecated)",
+      stripePriceId: null,
+      stripeProductId: "prod_TyJEKUH4wvPRcK",
+      sessionsIncluded: null,
+      commitmentMonths: 12,
+      priceInCents: 17500,
+    },
+    {
       planType: "MONTHLY_ADULT_6MO",
       category: "MONTHLY_SUBSCRIPTION",
       name: "Adults Monthly Membership - 6 Months",

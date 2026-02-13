@@ -116,7 +116,7 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
 
   // Adults Monthly Membership - 12 Months (DEPRECATED)
   prod_TyJEKUH4wvPRcK: {
-    planType: "MONTHLY_ADULT_1YR",
+    planType: "MONTHLY_ADULT_1YR_DEPRECATED",
     category: "MONTHLY_SUBSCRIPTION",
     name: "Adults Monthly Membership - 12 Months (Deprecated)",
     sessionsIncluded: null, // Unlimited
