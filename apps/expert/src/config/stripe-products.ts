@@ -114,6 +114,16 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
 
   // ===== MONTHLY MEMBERSHIPS - ADULT =====
 
+  // Adults Monthly Membership - 12 Months (DEPRECATED)
+  prod_TyJEKUH4wvPRcK: {
+    planType: "MONTHLY_ADULT_1YR",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "Adults Monthly Membership - 12 Months (Deprecated)",
+    sessionsIncluded: null, // Unlimited
+    commitmentMonths: 12,
+    priceInCents: 17500,
+  },
+
   // Adults Monthly Membership - 1 Year Package - SGD 175.00/month
   prod_TfsnoM0t71J5zO: {
     planType: "MONTHLY_ADULT_1YR",
