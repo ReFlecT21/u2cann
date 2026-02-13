@@ -459,9 +459,302 @@ async function seedMobileApp() {
   }
 }
 
+async function seedMembershipPlans() {
+  console.log("🏋️ Seeding membership plans...");
+
+  const plans = [
+    // ===== FREE TRIAL =====
+    {
+      planType: "FREE_TRIAL",
+      category: "TRIAL",
+      name: "Free Trial",
+      stripePriceId: null,
+      stripeProductId: "prod_Tft8gngNNnwXQ8",
+      sessionsIncluded: 1,
+      commitmentMonths: null,
+      priceInCents: 0,
+    },
+
+    // ===== TRIAL CLASS =====
+    {
+      planType: "TRIAL_CLASS",
+      category: "TRIAL",
+      name: "Trial Class",
+      stripePriceId: null,
+      stripeProductId: "prod_TnPx5MPbWLtVH4",
+      sessionsIncluded: 1,
+      commitmentMonths: null,
+      priceInCents: 1000,
+    },
+
+    // ===== FLEXI PACKAGES =====
+    {
+      planType: "FLEXI_ADULT_10",
+      category: "FLEXI_PACKAGE",
+      name: "Adult Flexi Package - 10 Sessions",
+      stripePriceId: null,
+      stripeProductId: "prod_Tft2CsejysdWjx",
+      sessionsIncluded: 10,
+      commitmentMonths: null,
+      priceInCents: 35000,
+    },
+    {
+      planType: "FLEXI_ADULT_5",
+      category: "FLEXI_PACKAGE",
+      name: "Adult Flexi Package - 5 Sessions",
+      stripePriceId: null,
+      stripeProductId: "prod_Tft1S6AbMv17fS",
+      sessionsIncluded: 5,
+      commitmentMonths: null,
+      priceInCents: 20500,
+    },
+    {
+      planType: "FLEXI_YOUTH_10",
+      category: "FLEXI_PACKAGE",
+      name: "Youth Flexi Package - 10 Sessions",
+      stripePriceId: null,
+      stripeProductId: "prod_Tft0i8C9ENKL4y",
+      sessionsIncluded: 10,
+      commitmentMonths: null,
+      priceInCents: 35000,
+    },
+    {
+      planType: "FLEXI_YOUTH_5",
+      category: "FLEXI_PACKAGE",
+      name: "Youth Flexi Package - 5 Sessions",
+      stripePriceId: null,
+      stripeProductId: "prod_TfszCQ0nQPkdCC",
+      sessionsIncluded: 5,
+      commitmentMonths: null,
+      priceInCents: 20500,
+    },
+    {
+      planType: "FLEXI_JUNIOR_10",
+      category: "FLEXI_PACKAGE",
+      name: "Junior Flexi Package - 10 Sessions",
+      stripePriceId: null,
+      stripeProductId: "prod_Tfsyu52WUS3VDX",
+      sessionsIncluded: 10,
+      commitmentMonths: null,
+      priceInCents: 28500,
+    },
+    {
+      planType: "FLEXI_JUNIOR_5",
+      category: "FLEXI_PACKAGE",
+      name: "Junior Flexi Package - 5 Sessions",
+      stripePriceId: null,
+      stripeProductId: "prod_TfsyXTkjC3Xgo9",
+      sessionsIncluded: 5,
+      commitmentMonths: null,
+      priceInCents: 15000,
+    },
+
+    // ===== MONTHLY MEMBERSHIPS - ADULT =====
+    {
+      planType: "MONTHLY_ADULT_1YR",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Adults Monthly Membership - 1 Year",
+      stripePriceId: null,
+      stripeProductId: "prod_TfsnoM0t71J5zO",
+      sessionsIncluded: null,
+      commitmentMonths: 12,
+      priceInCents: 17500,
+    },
+    {
+      planType: "MONTHLY_ADULT_6MO",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Adults Monthly Membership - 6 Months",
+      stripePriceId: null,
+      stripeProductId: "prod_TfsledpOQsyR7S",
+      sessionsIncluded: null,
+      commitmentMonths: 6,
+      priceInCents: 19200,
+    },
+    {
+      planType: "MONTHLY_ADULT_3MO",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Adults Monthly Membership - 3 Months",
+      stripePriceId: null,
+      stripeProductId: "prod_Tfsj2Oe4cINuX5",
+      sessionsIncluded: null,
+      commitmentMonths: 3,
+      priceInCents: 20900,
+    },
+    {
+      planType: "MONTHLY_ADULT",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Adults Monthly Membership",
+      stripePriceId: null,
+      stripeProductId: "prod_Tfsj889ZSsjPcn",
+      sessionsIncluded: null,
+      commitmentMonths: 1,
+      priceInCents: 22300,
+    },
+
+    // ===== MONTHLY MEMBERSHIPS - STUDENT =====
+    {
+      planType: "MONTHLY_STUDENT_1YR",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Student Monthly Membership - 1 Year",
+      stripePriceId: null,
+      stripeProductId: "prod_Tfsb4Pk9Ep6B5e",
+      sessionsIncluded: null,
+      commitmentMonths: 12,
+      priceInCents: 9800,
+    },
+    {
+      planType: "MONTHLY_STUDENT_6MO",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Student Monthly Membership - 6 Months",
+      stripePriceId: null,
+      stripeProductId: "prod_TfsaOxO2uHh3NE",
+      sessionsIncluded: null,
+      commitmentMonths: 6,
+      priceInCents: 10900,
+    },
+    {
+      planType: "MONTHLY_STUDENT_3MO",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Student Monthly Membership - 3 Months",
+      stripePriceId: null,
+      stripeProductId: "prod_TfsaaRAijAzAzV",
+      sessionsIncluded: null,
+      commitmentMonths: 3,
+      priceInCents: 11700,
+    },
+    {
+      planType: "MONTHLY_STUDENT",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Student Monthly Membership",
+      stripePriceId: null,
+      stripeProductId: "prod_TfsIKwWxa9klZT",
+      sessionsIncluded: null,
+      commitmentMonths: 1,
+      priceInCents: 13200,
+    },
+
+    // ===== MONTHLY MEMBERSHIPS - NSF/NSMEN =====
+    {
+      planType: "MONTHLY_NSF_1YR",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "NSF/NSMEN Monthly Membership - 1 Year",
+      stripePriceId: null,
+      stripeProductId: "prod_TfsfHuMMI3SNVh",
+      sessionsIncluded: null,
+      commitmentMonths: 12,
+      priceInCents: 15800,
+    },
+    {
+      planType: "MONTHLY_NSF_6MO",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "NSF/NSMEN Monthly Membership - 6 Months",
+      stripePriceId: null,
+      stripeProductId: "prod_TfsfXRdTQbgMeS",
+      sessionsIncluded: null,
+      commitmentMonths: 6,
+      priceInCents: 17500,
+    },
+    {
+      planType: "MONTHLY_NSF_3MO",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "NSF/NSMEN Monthly Membership - 3 Months",
+      stripePriceId: null,
+      stripeProductId: "prod_TfseuoXMJeNVw9",
+      sessionsIncluded: null,
+      commitmentMonths: 3,
+      priceInCents: 19200,
+    },
+    {
+      planType: "MONTHLY_NSF",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "NSF/NSMEN Monthly Membership",
+      stripePriceId: null,
+      stripeProductId: "prod_TfscqLfFIbrfGO",
+      sessionsIncluded: null,
+      commitmentMonths: 1,
+      priceInCents: 21400,
+    },
+
+    // ===== MONTHLY MEMBERSHIPS - JUNIOR =====
+    {
+      planType: "MONTHLY_JUNIOR_1YR",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Junior Monthly Membership - 1 Year",
+      stripePriceId: null,
+      stripeProductId: "prod_TfsEQ8mhmKAzjF",
+      sessionsIncluded: null,
+      commitmentMonths: 12,
+      priceInCents: 7600,
+    },
+    {
+      planType: "MONTHLY_JUNIOR_6MO",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Junior Monthly Membership - 6 Months",
+      stripePriceId: null,
+      stripeProductId: "prod_TfXOx3GdvRh6z3",
+      sessionsIncluded: null,
+      commitmentMonths: 6,
+      priceInCents: 8400,
+    },
+    {
+      planType: "MONTHLY_JUNIOR_3MO",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Junior Monthly Membership - 3 Months",
+      stripePriceId: null,
+      stripeProductId: "prod_TfXN1aF7mLXpEr",
+      sessionsIncluded: null,
+      commitmentMonths: 3,
+      priceInCents: 9300,
+    },
+    {
+      planType: "MONTHLY_JUNIOR",
+      category: "MONTHLY_SUBSCRIPTION",
+      name: "Junior Monthly Membership",
+      stripePriceId: null,
+      stripeProductId: "prod_TfXMQvCD2rNgwc",
+      sessionsIncluded: null,
+      commitmentMonths: 1,
+      priceInCents: 10800,
+    },
+  ] as const;
+
+  for (const plan of plans) {
+    // Use product ID as placeholder for price ID (will be updated by webhook when actual price is used)
+    const stripePriceId = `price_placeholder_${plan.planType}`;
+
+    await prisma.membershipPlan.upsert({
+      where: { planType: plan.planType },
+      update: {
+        name: plan.name,
+        category: plan.category,
+        stripeProductId: plan.stripeProductId,
+        sessionsIncluded: plan.sessionsIncluded,
+        commitmentMonths: plan.commitmentMonths,
+        priceInCents: plan.priceInCents,
+      },
+      create: {
+        planType: plan.planType,
+        name: plan.name,
+        category: plan.category,
+        stripePriceId,
+        stripeProductId: plan.stripeProductId,
+        sessionsIncluded: plan.sessionsIncluded,
+        commitmentMonths: plan.commitmentMonths,
+        priceInCents: plan.priceInCents,
+      },
+    });
+  }
+
+  console.log(`✅ Seeded ${plans.length} membership plans`);
+}
+
 async function main() {
   try {
-    await seedMobileApp();
+    // Seed membership plans (safe to run - uses upsert)
+    await seedMembershipPlans();
+
+    // Uncomment below to also seed mobile app data
+    // await seedMobileApp();
   } catch (error) {
     console.error("❌ Seed failed:", error);
     process.exit(1);
