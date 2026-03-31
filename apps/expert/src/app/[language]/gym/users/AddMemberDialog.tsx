@@ -113,9 +113,9 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
         expiry.setMonth(expiry.getMonth() + 6);
         setExpiryDate(format(expiry, "yyyy-MM-dd"));
       } else if (selectedPlan.category === "MONTHLY_SUBSCRIPTION") {
-        // Monthly subscriptions - set to 1 month from start
+        // Monthly subscriptions - use commitment months from plan
         const expiry = new Date(start);
-        expiry.setMonth(expiry.getMonth() + 1);
+        expiry.setMonth(expiry.getMonth() + (selectedPlan.commitmentMonths ?? 1));
         setExpiryDate(format(expiry, "yyyy-MM-dd"));
       }
     }
