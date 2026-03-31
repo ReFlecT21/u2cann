@@ -484,7 +484,21 @@ async function seedMembershipPlans() {
       stripeProductId: "prod_TnPx5MPbWLtVH4",
       sessionsIncluded: 1,
       commitmentMonths: null,
+      expiryDays: null,
       priceInCents: 1000,
+    },
+
+    // ===== 1 WEEK TRIAL =====
+    {
+      planType: "TRIAL_WEEK",
+      category: "TRIAL",
+      name: "1 Week Trial",
+      stripePriceId: null,
+      stripeProductId: "prod_UF921mnYLf7UdE",
+      sessionsIncluded: null, // Unlimited
+      commitmentMonths: null,
+      expiryDays: 7,
+      priceInCents: 3500,
     },
 
     // ===== FLEXI PACKAGES =====
@@ -740,6 +754,7 @@ async function seedMembershipPlans() {
         stripeProductId: plan.stripeProductId,
         sessionsIncluded: plan.sessionsIncluded,
         commitmentMonths: plan.commitmentMonths,
+        expiryDays: ("expiryDays" in plan ? plan.expiryDays : null) as number | null,
         priceInCents: plan.priceInCents,
       },
       create: {
@@ -750,6 +765,7 @@ async function seedMembershipPlans() {
         stripeProductId: plan.stripeProductId,
         sessionsIncluded: plan.sessionsIncluded,
         commitmentMonths: plan.commitmentMonths,
+        expiryDays: ("expiryDays" in plan ? plan.expiryDays : null) as number | null,
         priceInCents: plan.priceInCents,
       },
     });

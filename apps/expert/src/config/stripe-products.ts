@@ -32,6 +32,17 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
     flexiExpiryMonths: 1,
   },
 
+  // ===== 1 WEEK TRIAL =====
+  // Product: 1 Week Trial - SGD 35.00 (unlimited for 1 week)
+  prod_UF921mnYLf7UdE: {
+    planType: "TRIAL_WEEK",
+    category: "TRIAL",
+    name: "1 Week Trial",
+    sessionsIncluded: null, // Unlimited
+    commitmentMonths: null,
+    priceInCents: 3500,
+  },
+
   // ===== TRIAL CLASS =====
   // Product: Trial Class - SGD 10.00 (single session)
   prod_TnPx5MPbWLtVH4: {

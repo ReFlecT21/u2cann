@@ -183,6 +183,7 @@ model GymClosure {
 enum MembershipPlanType {
   FREE_TRIAL
   TRIAL_CLASS
+  TRIAL_WEEK
   // Flexi Packages
   FLEXI_ADULT_5
   FLEXI_ADULT_10
@@ -236,6 +237,7 @@ model MembershipPlan {
   stripeProductId  String
   sessionsIncluded Int?               // null = unlimited
   commitmentMonths Int?
+  expiryDays       Int?               // For short-term plans (e.g., 7 = 1 week trial)
   priceInCents     Int
   isActive         Boolean            @default(true)
   createdAt        DateTime           @default(now())

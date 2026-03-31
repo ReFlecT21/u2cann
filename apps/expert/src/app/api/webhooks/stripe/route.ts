@@ -127,10 +127,15 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   let commitmentEndDate: Date | null = null;
 
   if (planConfig.category === "FLEXI_PACKAGE" || planConfig.category === "TRIAL") {
-    // Flexi packages expire after N months
-    const expiryMonths = getFlexiExpiryMonths(planConfig);
     expiresAt = new Date(now);
-    expiresAt.setMonth(expiresAt.getMonth() + expiryMonths);
+    if (plan.expiryDays) {
+      // Short-term plans (e.g., 1 week trial)
+      expiresAt.setDate(expiresAt.getDate() + plan.expiryDays);
+    } else {
+      // Flexi packages expire after N months
+      const expiryMonths = getFlexiExpiryMonths(planConfig);
+      expiresAt.setMonth(expiresAt.getMonth() + expiryMonths);
+    }
   }
 
   if (planConfig.category === "MONTHLY_SUBSCRIPTION") {
