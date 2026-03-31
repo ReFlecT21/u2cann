@@ -133,29 +133,36 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     expiresAt.setMonth(expiresAt.getMonth() + expiryMonths);
   }
 
-  if (planConfig.category === "MONTHLY_SUBSCRIPTION" && subscriptionId) {
-    const subscription = await stripe!.subscriptions.retrieve(subscriptionId, {
-      expand: ["default_payment_method"],
-    });
-    currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+  if (planConfig.category === "MONTHLY_SUBSCRIPTION") {
+    if (subscriptionId) {
+      // Stripe auto-recurring subscription
+      const subscription = await stripe!.subscriptions.retrieve(subscriptionId, {
+        expand: ["default_payment_method"],
+      });
+      currentPeriodEnd = new Date(subscription.current_period_end * 1000);
 
-    // For subscriptions, get payment method from subscription if not already set
-    if (!paymentMethod && subscription.default_payment_method) {
-      const pm = subscription.default_payment_method as Stripe.PaymentMethod;
-      paymentMethod = pm.type;
+      // For subscriptions, get payment method from subscription if not already set
+      if (!paymentMethod && subscription.default_payment_method) {
+        const pm = subscription.default_payment_method as Stripe.PaymentMethod;
+        paymentMethod = pm.type;
 
-      if (pm.type === "card" && pm.card) {
-        const brand = pm.card.brand?.charAt(0).toUpperCase() + pm.card.brand?.slice(1);
-        paymentMethodDetails = `${brand} •••• ${pm.card.last4}`;
-      } else if (pm.type === "paynow") {
-        paymentMethodDetails = "PayNow";
-      } else if (pm.type === "grabpay") {
-        paymentMethodDetails = "GrabPay";
-      } else {
-        paymentMethodDetails = pm.type.charAt(0).toUpperCase() + pm.type.slice(1);
+        if (pm.type === "card" && pm.card) {
+          const brand = pm.card.brand?.charAt(0).toUpperCase() + pm.card.brand?.slice(1);
+          paymentMethodDetails = `${brand} •••• ${pm.card.last4}`;
+        } else if (pm.type === "paynow") {
+          paymentMethodDetails = "PayNow";
+        } else if (pm.type === "grabpay") {
+          paymentMethodDetails = "GrabPay";
+        } else {
+          paymentMethodDetails = pm.type.charAt(0).toUpperCase() + pm.type.slice(1);
+        }
+
+        console.log(`[Stripe Webhook] Subscription payment method: ${paymentMethod} (${paymentMethodDetails})`);
       }
-
-      console.log(`[Stripe Webhook] Subscription payment method: ${paymentMethod} (${paymentMethodDetails})`);
+    } else {
+      // One-time payment (e.g., PayNow) for monthly subscription - extend by 1 month
+      currentPeriodEnd = new Date(now);
+      currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
     }
 
     if (planConfig.commitmentMonths) {
@@ -166,28 +173,82 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
   }
 
-  // Step 5: Create UserMembership
-  await db.userMembership.create({
-    data: {
+  // Step 5: Check if user already has an active membership for this plan (renewal payment)
+  const existingMembership = await db.userMembership.findFirst({
+    where: {
       userId: dbUser.id,
       planId: plan.id,
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscriptionId,
-      paymentMethod,
-      paymentMethodDetails,
       status: "ACTIVE",
-      sessionsRemaining: planConfig.sessionsIncluded,
-      currentPeriodStart: now,
-      currentPeriodEnd,
-      commitmentEndDate,
-      activatedAt: now,
-      expiresAt,
     },
   });
 
-  console.log(
-    `[Stripe Webhook] Created membership for user ${dbUser.id}, plan: ${planConfig.planType}`
-  );
+  if (existingMembership && planConfig.category === "MONTHLY_SUBSCRIPTION") {
+    // Renewal: extend the existing membership by 1 month from current expiry (or from now if expired)
+    const extendFrom =
+      existingMembership.currentPeriodEnd && existingMembership.currentPeriodEnd > now
+        ? new Date(existingMembership.currentPeriodEnd)
+        : now;
+    const newPeriodEnd = new Date(extendFrom);
+    newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
+
+    await db.userMembership.update({
+      where: { id: existingMembership.id },
+      data: {
+        status: "ACTIVE",
+        currentPeriodEnd: newPeriodEnd,
+        expiresAt: newPeriodEnd,
+        paymentMethod,
+        paymentMethodDetails,
+        stripeCustomerId: customerId,
+      },
+    });
+
+    console.log(
+      `[Stripe Webhook] Renewed membership ${existingMembership.id} for user ${dbUser.id}, new expiry: ${newPeriodEnd.toISOString()}`
+    );
+  } else if (existingMembership && planConfig.category === "FLEXI_PACKAGE") {
+    // Flexi top-up: add sessions to existing package
+    await db.userMembership.update({
+      where: { id: existingMembership.id },
+      data: {
+        status: "ACTIVE",
+        sessionsRemaining: {
+          increment: planConfig.sessionsIncluded ?? 0,
+        },
+        expiresAt, // Reset expiry from now
+        paymentMethod,
+        paymentMethodDetails,
+        stripeCustomerId: customerId,
+      },
+    });
+
+    console.log(
+      `[Stripe Webhook] Topped up flexi membership ${existingMembership.id} for user ${dbUser.id}, added ${planConfig.sessionsIncluded} sessions`
+    );
+  } else {
+    // New membership
+    await db.userMembership.create({
+      data: {
+        userId: dbUser.id,
+        planId: plan.id,
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: subscriptionId,
+        paymentMethod,
+        paymentMethodDetails,
+        status: "ACTIVE",
+        sessionsRemaining: planConfig.sessionsIncluded,
+        currentPeriodStart: now,
+        currentPeriodEnd: currentPeriodEnd ?? expiresAt,
+        commitmentEndDate,
+        activatedAt: now,
+        expiresAt: expiresAt ?? currentPeriodEnd,
+      },
+    });
+
+    console.log(
+      `[Stripe Webhook] Created membership for user ${dbUser.id}, plan: ${planConfig.planType}`
+    );
+  }
 
   // Step 6: Send welcome email
   const firstName = session.customer_details?.name?.split(" ")[0];
