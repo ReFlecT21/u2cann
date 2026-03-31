@@ -74,13 +74,15 @@ export async function validateMembershipForBooking(
 
     // Check for trial
     if (membership.plan.category === "TRIAL") {
-      if (membership.sessionsRemaining && membership.sessionsRemaining > 0) {
-        const isExpired = membership.expiresAt && membership.expiresAt < now;
-        if (!isExpired) {
+      const isExpired = membership.expiresAt && membership.expiresAt < now;
+      if (!isExpired) {
+        // Unlimited trial (e.g., 1 week trial) or session-based trial with remaining sessions
+        const hasAccess = membership.sessionsRemaining === null || membership.sessionsRemaining > 0;
+        if (hasAccess) {
           return {
             isValid: true,
             membershipId: membership.id,
-            membershipType: "flexi",
+            membershipType: membership.sessionsRemaining === null ? "subscription" : "flexi",
             sessionsRemaining: membership.sessionsRemaining,
             expiresAt: membership.expiresAt,
             planName: membership.plan.name,
