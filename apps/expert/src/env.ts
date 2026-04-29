@@ -20,6 +20,10 @@ export const env = createEnv({
     // Stripe (optional until configured)
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    // Hikvision bridge (optional until deployed)
+    HIKVISION_BRIDGE_URL: z.string().optional(),
+    HIKVISION_BRIDGE_SECRET: z.string().optional(),
+    HIKVISION_ENCRYPTION_KEY: z.string().optional(),
     NEXT_PUBLIC_CDK_ENVIRONMENT: z
       .enum(["development", "production"])
       .default("production"),
@@ -54,6 +58,10 @@ export const env = createEnv({
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    // Hikvision bridge
+    HIKVISION_BRIDGE_URL: process.env.HIKVISION_BRIDGE_URL,
+    HIKVISION_BRIDGE_SECRET: process.env.HIKVISION_BRIDGE_SECRET,
+    HIKVISION_ENCRYPTION_KEY: process.env.HIKVISION_ENCRYPTION_KEY,
   },
   skipValidation:
     !!process.env.SKIP_ENV_VALIDATION ||

@@ -45,6 +45,7 @@ model user {
   instructor    Instructor?
   classBookings ClassBooking[]
   memberships   UserMembership[]
+  faceProfile   FaceProfile?
 }
 
 // ======================
@@ -296,4 +297,92 @@ model StripeEvent {
   processedAt   DateTime @default(now())
 
   @@map("stripe_events")
+}
+
+// ======================
+// Face Enrollment (Hikvision Integration)
+// ======================
+
+enum FaceApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum FaceSyncStatus {
+  PENDING
+  SYNCING
+  SYNCED
+  FAILED
+}
+
+model FaceProfile {
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  user                user               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  faceImageUrl        String
+  faceImageS3Key      String
+  hikvisionEmployeeNo String             @unique
+  approvalStatus      FaceApprovalStatus @default(PENDING)
+  syncStatus          FaceSyncStatus     @default(PENDING)
+  syncError           String?
+  syncedAt            DateTime?
+  approvedBy          String?
+  approvedAt          DateTime?
+  rejectionReason     String?
+  uploadedByAdminId   String?            // null = self-uploaded, else admin userId
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([approvalStatus])
+  @@map("face_profiles")
+}
+
+// ======================
+// Hikvision Device & Access Events
+// ======================
+
+model HikvisionDevice {
+  id                String        @id @default(cuid())
+  name              String        // e.g., "Main Entrance"
+  ipAddress         String
+  port              Int           @default(80)
+  username          String
+  encryptedPassword String        // AES-encrypted via HIKVISION_ENCRYPTION_KEY
+  isActive          Boolean       @default(true)
+  lastSyncedAt      DateTime?
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  accessEvents      AccessEvent[]
+
+  @@map("hikvision_devices")
+}
+
+enum AccessDecision {
+  GRANTED
+  DENIED
+  UNKNOWN
+}
+
+model AccessEvent {
+  id              String          @id @default(cuid())
+  deviceId        String?
+  device          HikvisionDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  employeeNo      String?         // hikvisionEmployeeNo from camera
+  userId          String?         // resolved from FaceProfile.hikvisionEmployeeNo
+  userName        String?         // snapshot of name at scan time
+  eventType       String?         // raw event code from camera
+  decision        AccessDecision  @default(UNKNOWN)
+  similarity      Float?          // recognition confidence 0..100
+  capturedImageUrl String?        // optional snapshot from camera
+  rawPayload      Json?           // full webhook body for debugging
+  occurredAt      DateTime        @default(now())
+  createdAt       DateTime        @default(now())
+
+  @@index([deviceId])
+  @@index([userId])
+  @@index([occurredAt])
+  @@map("access_events")
 }

@@ -24,9 +24,10 @@ import {
   SelectValue,
 } from "@adh/ui/ui/select";
 import { Skeleton } from "@adh/ui/ui/skeleton";
-import { Users, UserCheck, Shield, Dumbbell, CreditCard, Search, UserPlus } from "lucide-react";
+import { Users, UserCheck, Shield, Dumbbell, CreditCard, Search, UserPlus, Camera } from "lucide-react";
 import { AdminGuard } from "../../components/AdminGuard";
 import { AddMemberDialog } from "./AddMemberDialog";
+import { FaceManageDialog } from "./FaceManageDialog";
 
 function getMembershipStatusColor(status: string | undefined) {
   switch (status) {
@@ -62,6 +63,11 @@ export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [faceTarget, setFaceTarget] = useState<{
+    id: string;
+    name: string | null;
+    email: string;
+  } | null>(null);
 
   const { data: users, isLoading } = api.gym.users.getAll.useQuery({
     search: search || undefined,
@@ -69,6 +75,7 @@ export default function UsersPage() {
   });
 
   const { data: stats } = api.gym.users.getStats.useQuery();
+  const { data: pendingFaceCount } = api.gym.faceEnrollment.pendingCount.useQuery();
 
   return (
     <AdminGuard>
@@ -80,10 +87,18 @@ export default function UsersPage() {
               Manage users and view membership information
             </p>
           </div>
-          <Button onClick={() => setAddMemberOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add Member
-          </Button>
+          <div className="flex items-center gap-2">
+            {pendingFaceCount && pendingFaceCount > 0 ? (
+              <Badge className="bg-yellow-500 text-white">
+                <Camera className="mr-1 h-3 w-3" />
+                {pendingFaceCount} pending face approval{pendingFaceCount === 1 ? "" : "s"}
+              </Badge>
+            ) : null}
+            <Button onClick={() => setAddMemberOpen(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add Member
+            </Button>
+          </div>
         </header>
 
         {/* Stats Cards */}
@@ -181,12 +196,13 @@ export default function UsersPage() {
                     <TableHead>Signed Up</TableHead>
                     <TableHead>Expires</TableHead>
                     <TableHead className="text-right">Bookings</TableHead>
+                    <TableHead className="text-right">Face</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users?.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                         No users found
                       </TableCell>
                     </TableRow>
@@ -274,6 +290,21 @@ export default function UsersPage() {
                             {user.confirmedBookings} active
                           </div>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setFaceTarget({
+                                id: user.id,
+                                name: user.name,
+                                email: user.email,
+                              })
+                            }
+                          >
+                            <Camera className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -285,6 +316,13 @@ export default function UsersPage() {
 
         {/* Add Member Dialog */}
         <AddMemberDialog open={addMemberOpen} onOpenChange={setAddMemberOpen} />
+
+        {/* Face Enrollment Dialog */}
+        <FaceManageDialog
+          open={!!faceTarget}
+          onOpenChange={(open) => !open && setFaceTarget(null)}
+          targetUser={faceTarget}
+        />
       </div>
     </AdminGuard>
   );

@@ -12,6 +12,7 @@ import { Skeleton } from "@adh/ui/ui/skeleton";
 
 import { api } from "~/trpc/react";
 import PaymentSettingsPage from "./payment";
+import { FaceEnrollmentCard } from "./FaceEnrollmentCard";
 
 export default function AdminAccountSettingsPage() {
   const { resolvedTheme } = useTheme();
@@ -19,7 +20,8 @@ export default function AdminAccountSettingsPage() {
   const searchParams = useSearchParams();
 
   return (
-    <div>
+    <div className="space-y-6">
+      <FaceEnrollmentCard />
       <UserProfile
         routing="virtual"
         appearance={{

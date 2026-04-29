@@ -9,6 +9,7 @@ import {
   Dumbbell,
   ClipboardList,
   CalendarDays,
+  Camera,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { SidebarData } from "@adh/ui/custom/layout/app-sidebar";
@@ -103,6 +104,12 @@ export default function ClientLayoutWrapper({
               title: t("Settings.GymClosures"),
               url: `/${locale}/exclusions`,
               icon: CalendarDays,
+            },
+            {
+              isCollapsible: false,
+              title: "Face Devices",
+              url: `/${locale}/gym/devices`,
+              icon: Camera,
             },
           ],
         }
