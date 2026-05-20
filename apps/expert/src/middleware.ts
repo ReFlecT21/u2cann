@@ -15,7 +15,10 @@ const publicRoutes = createRouteMatcher([
   "/schedule/(.*)",
   "/api/webhooks/stripe",
   "/api/webhooks/clerk",
+  "/api/webhooks/hikvision",
   "/api/trpc/(.*)",
+  // Cron routes authenticate via CRON_SECRET bearer, not Clerk
+  "/api/cron/(.*)",
   "/health",
   // PWA files
   "/manifest.json",

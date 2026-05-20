@@ -33,6 +33,23 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
+  // Only activate a membership once payment has actually cleared.
+  // - Card checkouts: this event fires post-payment (payment_status="paid").
+  // - PayNow / async methods: this event fires immediately with
+  //   payment_status="unpaid"; the real confirmation arrives later as
+  //   checkout.session.async_payment_succeeded (also routed here, by then
+  //   payment_status="paid"). Deferring here prevents granting gym access
+  //   before the money lands.
+  const isPaid =
+    session.payment_status === "paid" ||
+    session.payment_status === "no_payment_required";
+  if (!isPaid) {
+    console.log(
+      `[Stripe Webhook] Checkout ${session.id} not paid yet (payment_status=${session.payment_status}); deferring activation`
+    );
+    return;
+  }
+
   // Get payment method details
   let paymentMethod: string | null = null;
   let paymentMethodDetails: string | null = null;
@@ -358,6 +375,43 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 }
 
 /**
+ * Handle a deferred payment (e.g. PayNow) that ultimately failed.
+ * We never activated the membership on the initial checkout.session.completed
+ * (payment_status was "unpaid"), so usually there's nothing to revoke. But if
+ * a membership exists for this subscription, mark it pending and re-sync the
+ * door so access is closed.
+ */
+async function handleAsyncPaymentFailed(session: Stripe.Checkout.Session) {
+  const subscriptionId = session.subscription as string | null;
+  if (!subscriptionId) {
+    console.log(
+      `[Stripe Webhook] Async payment failed for checkout ${session.id} (no subscription, nothing to revoke)`
+    );
+    return;
+  }
+
+  const memberships = await db.userMembership.findMany({
+    where: { stripeSubscriptionId: subscriptionId },
+    select: { id: true, userId: true },
+  });
+
+  if (memberships.length === 0) return;
+
+  await db.userMembership.updateMany({
+    where: { stripeSubscriptionId: subscriptionId },
+    data: { status: "PENDING_PAYMENT" },
+  });
+
+  console.log(
+    `[Stripe Webhook] Async payment failed; marked ${memberships.length} membership(s) pending for subscription ${subscriptionId}`
+  );
+
+  for (const m of memberships) {
+    void reconcileUserAccessSafe(m.userId);
+  }
+}
+
+/**
  * Find existing Clerk user or create a new one
  */
 async function findOrCreateClerkUser(email: string, name?: string | null) {
@@ -505,7 +559,17 @@ export async function POST(req: NextRequest) {
   try {
     switch (event.type) {
       case "checkout.session.completed":
+      // async_payment_succeeded fires when a deferred method (e.g. PayNow)
+      // finally settles. By then payment_status is "paid", so the same
+      // handler activates the membership.
+      case "checkout.session.async_payment_succeeded":
         await handleCheckoutCompleted(
+          event.data.object as Stripe.Checkout.Session
+        );
+        break;
+
+      case "checkout.session.async_payment_failed":
+        await handleAsyncPaymentFailed(
           event.data.object as Stripe.Checkout.Session
         );
         break;

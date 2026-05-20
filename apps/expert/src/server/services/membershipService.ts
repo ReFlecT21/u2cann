@@ -270,8 +270,11 @@ export function mapStripeStatusToInternal(
       return "PAUSED";
     case "past_due":
     case "unpaid":
+    case "incomplete":
+    case "incomplete_expired":
       return "PENDING_PAYMENT";
     default:
-      return "ACTIVE";
+      // Fail closed: an unrecognised status must not grant access.
+      return "PENDING_PAYMENT";
   }
 }
