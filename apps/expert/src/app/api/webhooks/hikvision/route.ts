@@ -21,13 +21,17 @@ interface HikvisionEventPayload {
   faceRect?: unknown;
   similarity?: number;
   picUrl?: string;
-  // Newer firmware nests under AccessControllerEvent
+  // Firmware nests the real data under AccessControllerEvent
   AccessControllerEvent?: {
     employeeNoString?: string;
     name?: string;
     similarity?: number;
     picUrl?: string;
     eventType?: number | string;
+    majorEventType?: number;
+    subEventType?: number;
+    currentVerifyMode?: string;
+    statusValue?: number;
   };
 }
 
@@ -63,10 +67,41 @@ export async function POST(request: NextRequest) {
   try {
     if (contentType.includes("application/json")) {
       raw = await request.json();
+    } else if (contentType.includes("multipart/form-data")) {
+      // The terminal posts multipart with an "event_log" part (JSON) plus
+      // an optional binary picture part. Pull the event JSON out.
+      const form = await request.formData();
+      const eventLog = form.get("event_log");
+      if (typeof eventLog === "string") {
+        try {
+          raw = JSON.parse(eventLog);
+        } catch {
+          raw = { _raw: eventLog };
+        }
+      } else {
+        // Some firmware names the field differently; fall back to the
+        // first string part that looks like JSON.
+        let found: unknown = null;
+        for (const [, value] of form.entries()) {
+          if (typeof value === "string" && value.trim().startsWith("{")) {
+            try {
+              found = JSON.parse(value);
+              break;
+            } catch {
+              // keep looking
+            }
+          }
+        }
+        raw = found ?? { _unparsed: "multipart without event_log" };
+      }
     } else {
-      // XML or multipart — store as text for now
+      // XML or unknown — try JSON, else store raw text
       const text = await request.text();
-      raw = { _raw: text };
+      try {
+        raw = JSON.parse(text);
+      } catch {
+        raw = { _raw: text };
+      }
     }
   } catch (err) {
     console.error("[hikvision-webhook] failed to parse body", err);
@@ -75,33 +110,30 @@ export async function POST(request: NextRequest) {
 
   const payload = raw as HikvisionEventPayload;
   const employeeNo = pickEmployeeNo(payload);
+
+  // The terminal emits a lot of door/system noise (no person attached).
+  // We only care about events where a known person scanned, so skip the
+  // rest to keep the access log clean and avoid email noise.
+  if (!employeeNo) {
+    return NextResponse.json({ received: true, skipped: "no employeeNo" });
+  }
+
   const userName = pickName(payload);
   const similarity = pickSimilarity(payload);
   const eventType = pickEventType(payload);
   const capturedImageUrl = pickPicUrl(payload);
 
-  // Try to resolve our user from the employee number
-  let userId: string | null = null;
-  if (employeeNo) {
-    const profile = await db.faceProfile.findUnique({
-      where: { hikvisionEmployeeNo: employeeNo },
-      select: { userId: true },
-    });
-    userId = profile?.userId ?? null;
-  }
+  // Resolve our user from the employee number
+  const profile = await db.faceProfile.findUnique({
+    where: { hikvisionEmployeeNo: employeeNo },
+    select: { userId: true },
+  });
+  const userId = profile?.userId ?? null;
 
-  // Hikvision event type 5 / 75 typically = face recognition success.
-  // Anything explicitly marked failed counts as DENIED. Keep loose for now.
-  const cameraDecision: "GRANTED" | "DENIED" | "UNKNOWN" = userId
-    ? "GRANTED"
-    : employeeNo
-      ? "DENIED"
-      : "UNKNOWN";
-
-  // Independent server-side judgement of whether this user *should*
-  // have been granted access. Stored alongside the camera's decision
-  // so we can see when the two disagree (e.g. camera granted because
-  // we haven't pushed a revoke yet, but cloud knows membership lapsed).
+  // The cloud's own access decision is authoritative — we can't reliably
+  // map this firmware's grant/deny event codes, and the reconciler keeps
+  // the camera in lockstep with this anyway. So the effective decision and
+  // the denial email are both driven by evaluateAccess, not camera codes.
   let serverReason: AccessReason | null = null;
   if (userId) {
     try {
@@ -112,13 +144,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const decision: "GRANTED" | "DENIED" | "UNKNOWN" =
+    serverReason == null
+      ? "UNKNOWN"
+      : isAllowedReason(serverReason)
+        ? "GRANTED"
+        : "DENIED";
+
   await db.accessEvent.create({
     data: {
       employeeNo,
       userId,
       userName,
       eventType,
-      decision: cameraDecision,
+      decision,
       similarity,
       capturedImageUrl,
       rawPayload: raw as never,
@@ -126,11 +165,10 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  // Notify the member if they were denied AND we know who they are.
-  // Throttle: at most one email per 24h per membership row
-  // (tracked via UserMembership.lastAccessNotifiedAt).
+  // Notify the member if the cloud says they shouldn't have access.
+  // Throttle: at most one email per 24h per membership row.
   if (
-    cameraDecision === "DENIED" &&
+    decision === "DENIED" &&
     userId &&
     serverReason &&
     !isAllowedReason(serverReason)
