@@ -9,6 +9,7 @@ import {
 } from "~/config/stripe-products";
 import { mapStripeStatusToInternal } from "~/server/services/membershipService";
 import { sendWelcomeEmail } from "~/server/services/emailService";
+import { reconcileUserAccessSafe } from "~/server/lib/accessReconciler";
 
 // Initialize Stripe only if configured
 const stripe = env.STRIPE_SECRET_KEY
@@ -261,6 +262,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     to: customerEmail,
     firstName,
   });
+
+  // Step 7: Reconcile camera access. Payment just landed so the user
+  // may now qualify for door entry (or stay qualified if renewing).
+  // Fire-and-forget so the webhook responds quickly to Stripe.
+  void reconcileUserAccessSafe(dbUser.id);
 }
 
 /**
@@ -292,6 +298,10 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   console.log(
     `[Stripe Webhook] Updated membership ${membership.id} from subscription ${subscription.id}`
   );
+
+  // Status may have flipped (active <-> past_due/canceled/paused) — push
+  // the door state in line with the new reality. Fire-and-forget.
+  void reconcileUserAccessSafe(membership.userId);
 }
 
 /**
@@ -299,6 +309,11 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
  * Marks membership as cancelled
  */
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const memberships = await db.userMembership.findMany({
+    where: { stripeSubscriptionId: subscription.id },
+    select: { userId: true },
+  });
+
   await db.userMembership.updateMany({
     where: { stripeSubscriptionId: subscription.id },
     data: {
@@ -310,6 +325,10 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   console.log(
     `[Stripe Webhook] Cancelled membership for subscription ${subscription.id}`
   );
+
+  for (const m of memberships) {
+    void reconcileUserAccessSafe(m.userId);
+  }
 }
 
 /**
@@ -319,6 +338,11 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   if (!invoice.subscription) return;
 
+  const memberships = await db.userMembership.findMany({
+    where: { stripeSubscriptionId: invoice.subscription as string },
+    select: { userId: true },
+  });
+
   await db.userMembership.updateMany({
     where: { stripeSubscriptionId: invoice.subscription as string },
     data: { status: "PENDING_PAYMENT" },
@@ -327,6 +351,10 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   console.log(
     `[Stripe Webhook] Marked membership as pending payment for subscription ${invoice.subscription}`
   );
+
+  for (const m of memberships) {
+    void reconcileUserAccessSafe(m.userId);
+  }
 }
 
 /**

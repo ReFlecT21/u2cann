@@ -24,6 +24,10 @@ export const env = createEnv({
     HIKVISION_BRIDGE_URL: z.string().optional(),
     HIKVISION_BRIDGE_SECRET: z.string().optional(),
     HIKVISION_ENCRYPTION_KEY: z.string().optional(),
+    // Vercel cron auth — when set, /api/cron/* routes require
+    // Authorization: Bearer <CRON_SECRET>. Vercel injects this header
+    // automatically for scheduled crons.
+    CRON_SECRET: z.string().optional(),
     NEXT_PUBLIC_CDK_ENVIRONMENT: z
       .enum(["development", "production"])
       .default("production"),
@@ -62,6 +66,7 @@ export const env = createEnv({
     HIKVISION_BRIDGE_URL: process.env.HIKVISION_BRIDGE_URL,
     HIKVISION_BRIDGE_SECRET: process.env.HIKVISION_BRIDGE_SECRET,
     HIKVISION_ENCRYPTION_KEY: process.env.HIKVISION_ENCRYPTION_KEY,
+    CRON_SECRET: process.env.CRON_SECRET,
   },
   skipValidation:
     !!process.env.SKIP_ENV_VALIDATION ||

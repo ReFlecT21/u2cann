@@ -3,5 +3,11 @@
   "buildCommand": "pnpm turbo build --filter=@adh/expert",
   "installCommand": "pnpm install",
   "framework": "nextjs",
-  "outputDirectory": "apps/expert/.next"
+  "outputDirectory": "apps/expert/.next",
+  "crons": [
+    {
+      "path": "/api/cron/reconcile-face-access",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

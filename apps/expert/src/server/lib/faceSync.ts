@@ -5,6 +5,8 @@ import {
   deleteFace,
   describeError,
   isBridgeConfigured,
+  restoreAccess,
+  revokeAccess,
   syncFace,
   type BridgeResponse,
 } from "./hikvisionBridge";
@@ -132,6 +134,124 @@ export async function syncFaceProfile(profileId: string): Promise<{
   });
 
   return { ok: allOk, results };
+}
+
+/**
+ * Revoke a profile's door access on all active devices without
+ * removing the stored face. The camera will recognise the face but
+ * deny entry. Restoring is one ISAPI call (no re-upload).
+ */
+export async function revokeFaceAccess(profileId: string): Promise<{
+  ok: boolean;
+  results: SyncResult[];
+  skipped?: string;
+}> {
+  if (!isBridgeConfigured()) {
+    return { ok: false, results: [], skipped: "Bridge not configured" };
+  }
+
+  const profile = await db.faceProfile.findUnique({
+    where: { id: profileId },
+    include: { user: { select: { name: true, email: true } } },
+  });
+  if (!profile) {
+    return { ok: false, results: [], skipped: "Profile not found" };
+  }
+
+  const devices = await getActiveDevices();
+  if (devices.length === 0) {
+    return { ok: false, results: [], skipped: "No active devices" };
+  }
+
+  const displayName = profile.user.name || profile.user.email;
+  const results: SyncResult[] = [];
+
+  for (const device of devices) {
+    let response: BridgeResponse;
+    try {
+      const password = decrypt(device.encryptedPassword);
+      response = await revokeAccess({
+        ip: device.ipAddress,
+        port: device.port,
+        username: device.username,
+        password,
+        employeeNo: profile.hikvisionEmployeeNo,
+        name: displayName,
+      });
+    } catch (err) {
+      response = {
+        success: false,
+        error: err instanceof Error ? err.message : "Unknown error",
+      };
+    }
+    results.push({
+      deviceId: device.id,
+      deviceName: device.name,
+      success: response.success,
+      error: response.success ? undefined : describeError(response),
+    });
+  }
+
+  return { ok: results.every((r) => r.success), results };
+}
+
+/**
+ * Counterpart to revokeFaceAccess — re-applies door rights for a
+ * profile whose face is still on the camera.
+ */
+export async function restoreFaceAccess(profileId: string): Promise<{
+  ok: boolean;
+  results: SyncResult[];
+  skipped?: string;
+}> {
+  if (!isBridgeConfigured()) {
+    return { ok: false, results: [], skipped: "Bridge not configured" };
+  }
+
+  const profile = await db.faceProfile.findUnique({
+    where: { id: profileId },
+    include: { user: { select: { name: true, email: true } } },
+  });
+  if (!profile) {
+    return { ok: false, results: [], skipped: "Profile not found" };
+  }
+
+  const devices = await getActiveDevices();
+  if (devices.length === 0) {
+    return { ok: false, results: [], skipped: "No active devices" };
+  }
+
+  const displayName = profile.user.name || profile.user.email;
+  const results: SyncResult[] = [];
+
+  for (const device of devices) {
+    let response: BridgeResponse;
+    try {
+      const password = decrypt(device.encryptedPassword);
+      response = await restoreAccess({
+        ip: device.ipAddress,
+        port: device.port,
+        username: device.username,
+        password,
+        employeeNo: profile.hikvisionEmployeeNo,
+        name: displayName,
+        doorRights: [1],
+      });
+    } catch (err) {
+      response = {
+        success: false,
+        error: err instanceof Error ? err.message : "Unknown error",
+      };
+    }
+    results.push({
+      deviceId: device.id,
+      deviceName: device.name,
+      success: response.success,
+      error: response.success ? undefined : describeError(response),
+    });
+  }
+
+  return { ok: results.every((r) => r.success), results };
 }
 
 export async function removeFaceFromDevices(

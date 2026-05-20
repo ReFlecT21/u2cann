@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { env } from "~/env";
+import { describeAccessReason, type AccessReason } from "./accessControl";
 
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
@@ -174,6 +175,106 @@ Team U2CAN Boxing
     return { success: true, id: data?.id };
   } catch (error) {
     console.error("Error sending welcome email:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
+interface SendAccessDeniedEmailParams {
+  to: string;
+  firstName?: string | null;
+  reason: AccessReason;
+  deviceName?: string | null;
+  occurredAt: Date;
+}
+
+export async function sendAccessDeniedEmail({
+  to,
+  firstName,
+  reason,
+  deviceName,
+  occurredAt,
+}: SendAccessDeniedEmailParams) {
+  if (!resend) {
+    console.warn("Resend not configured - skipping access-denied email");
+    return { success: false, error: "Resend not configured" };
+  }
+
+  const greeting = firstName ? `Hi ${firstName},` : "Hi there,";
+  const reasonText = describeAccessReason(reason);
+  const where = deviceName ? ` at ${deviceName}` : "";
+  // Format in Singapore time since the gym operates there.
+  const when = occurredAt.toLocaleString("en-SG", {
+    timeZone: "Asia/Singapore",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+  const renewUrl = "https://app.u2canboxing.com/account/membership";
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: "U2CAN Boxing <noreply@u2canboxing.com>",
+      to: [to],
+      subject: "Gym access denied — action needed",
+      html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gym access denied</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f3f4f6;">
+  <div style="background-color: #ffffff; border-radius: 12px; overflow: hidden; margin: 20px;">
+    <div style="background-color: #111827; padding: 25px 20px; text-align: center;">
+      <h1 style="color: #ffffff; font-size: 24px; font-weight: 900; margin: 0;">ACCESS DENIED</h1>
+      <p style="color: #fca5a5; margin: 10px 0 0 0; font-size: 14px;">${when}${where}</p>
+    </div>
+    <div style="padding: 30px 20px; background-color: #ffffff;">
+      <p>${greeting}</p>
+      <p>We blocked an entry attempt with your face at the gym door just now. The reason was:</p>
+      <p style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 20px 0; color: #991b1b; font-weight: 600;">
+        ${reasonText}
+      </p>
+      <p>To get back in, please check your membership on the U2CAN app:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${renewUrl}" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: bold; font-size: 16px;">Manage membership</a>
+      </div>
+      <p style="font-size: 13px; color: #6b7280;">If you believe this is a mistake, just reply to this email and we'll sort it out.</p>
+      <p style="margin-top: 30px;">— Team U2CAN Boxing</p>
+    </div>
+    <div style="background-color: #111827; padding: 20px; text-align: center;">
+      <p style="color: #9ca3af; margin: 0; font-size: 12px;">U2CAN Boxing</p>
+    </div>
+  </div>
+</body>
+</html>
+      `.trim(),
+      text: `
+Gym access denied${where} at ${when}
+
+${greeting}
+
+We blocked an entry attempt with your face at the gym door just now.
+
+Reason: ${reasonText}
+
+Manage your membership: ${renewUrl}
+
+If you believe this is a mistake, reply to this email and we'll help.
+
+— Team U2CAN Boxing
+      `.trim(),
+    });
+
+    if (error) {
+      console.error("Failed to send access-denied email:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, id: data?.id };
+  } catch (error) {
+    console.error("Error sending access-denied email:", error);
     return { success: false, error: String(error) };
   }
 }

@@ -230,19 +230,23 @@ enum MembershipStatus {
 }
 
 model MembershipPlan {
-  id               String             @id @default(cuid())
-  planType         MembershipPlanType @unique
-  category         MembershipCategory
-  name             String
-  stripePriceId    String             @unique
-  stripeProductId  String
-  sessionsIncluded Int?               // null = unlimited
-  commitmentMonths Int?
-  expiryDays       Int?               // For short-term plans (e.g., 7 = 1 week trial)
-  priceInCents     Int
-  isActive         Boolean            @default(true)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id                      String             @id @default(cuid())
+  planType                MembershipPlanType @unique
+  category                MembershipCategory
+  name                    String
+  stripePriceId           String             @unique
+  stripeProductId         String
+  sessionsIncluded        Int?               // null = unlimited
+  commitmentMonths        Int?
+  expiryDays              Int?               // For short-term plans (e.g., 7 = 1 week trial)
+  priceInCents            Int
+  isActive                Boolean            @default(true)
+  // When true, members on this plan can only enter the gym during a
+  // booked session window. When false (default), they may enter any
+  // time their membership is active.
+  requiresBookingForEntry Boolean            @default(false)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
 
   userMemberships UserMembership[]
 
@@ -269,6 +273,9 @@ model UserMembership {
   activatedAt          DateTime?
   expiresAt            DateTime?        // Flexi expires 6 months from purchase
   cancelledAt          DateTime?
+  // Last time we emailed the user about a denied door scan. Used to
+  // throttle access-denied notifications to one per calendar day.
+  lastAccessNotifiedAt DateTime?
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 
@@ -331,6 +338,18 @@ model FaceProfile {
   approvedAt          DateTime?
   rejectionReason     String?
   uploadedByAdminId   String?            // null = self-uploaded, else admin userId
+  // Reconciler tracking: true when door rights are believed to be
+  // applied on every camera, false when access has been revoked
+  // (face remains but doorRight is empty). Lets the reconciler skip
+  // bridge calls when the desired state already matches.
+  accessGrantedOnCamera Boolean          @default(true)
+  // Last AccessReason produced by evaluateAccess. Stored for the
+  // admin UI so it can show *why* a member's access is revoked
+  // without re-querying.
+  lastAccessReason    String?
+  // When the reconciler last ran for this profile (regardless of
+  // whether it had to do anything).
+  reconciledAt        DateTime?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 
@@ -378,6 +397,11 @@ model AccessEvent {
   similarity      Float?          // recognition confidence 0..100
   capturedImageUrl String?        // optional snapshot from camera
   rawPayload      Json?           // full webhook body for debugging
+  // Server-side judgement of whether the user *should* have been
+  // granted access at scan time, in the form of an AccessReason
+  // string (see services/accessControl.ts). The camera makes its
+  // own decision; this records what the cloud thought.
+  membershipStateAtScan String?
   occurredAt      DateTime        @default(now())
   createdAt       DateTime        @default(now())
 

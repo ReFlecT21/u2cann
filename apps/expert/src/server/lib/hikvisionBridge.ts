@@ -18,6 +18,17 @@ export interface DeleteFaceArgs extends BridgeDevice {
   employeeNo: string;
 }
 
+export interface RevokeAccessArgs extends BridgeDevice {
+  employeeNo: string;
+  name: string;
+}
+
+export interface RestoreAccessArgs extends BridgeDevice {
+  employeeNo: string;
+  name: string;
+  doorRights?: number[];
+}
+
 export interface BridgeResponse {
   success: boolean;
   error?: string;
@@ -101,6 +112,14 @@ export function syncFace(args: SyncFaceArgs) {
 
 export function deleteFace(args: DeleteFaceArgs) {
   return callBridge<BridgeResponse>("/api/hikvision/delete-face", args);
+}
+
+export function revokeAccess(args: RevokeAccessArgs) {
+  return callBridge<BridgeResponse>("/api/hikvision/revoke-access", args);
+}
+
+export function restoreAccess(args: RestoreAccessArgs) {
+  return callBridge<BridgeResponse>("/api/hikvision/restore-access", args);
 }
 
 export function testConnection(args: BridgeDevice) {
