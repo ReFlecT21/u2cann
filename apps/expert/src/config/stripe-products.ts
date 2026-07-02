@@ -300,6 +300,59 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
     commitmentMonths: 1,
     priceInCents: 10800,
   },
+
+  // ===== Auto-pay membership products (LIVE) =====
+  // Dedicated products for the /api/billing/checkout monthly auto-pay flow.
+  // Each has a recurring monthly price + a one-time price (both on the same
+  // product), so the webhook resolves this productId to the plan below.
+  prod_UoHXgxQNe7WeeF: {
+    planType: "MONTHLY_ADULT_1YR",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "Adult Membership (Monthly)",
+    sessionsIncluded: null,
+    commitmentMonths: 12,
+    priceInCents: 17500,
+  },
+  prod_UoHX4DUjGbsj3G: {
+    planType: "MONTHLY_ADULT",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "Adult Membership New (Monthly)",
+    sessionsIncluded: null,
+    commitmentMonths: 1,
+    priceInCents: 19000,
+  },
+  prod_UoHXlRjM7si2er: {
+    planType: "MONTHLY_STUDENT_1YR",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "Student Membership (Monthly)",
+    sessionsIncluded: null,
+    commitmentMonths: 12,
+    priceInCents: 9800,
+  },
+  prod_UoHXf02Lp3jWNH: {
+    planType: "MONTHLY_STUDENT",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "Muay Thai Student (Monthly)",
+    sessionsIncluded: null,
+    commitmentMonths: 1,
+    priceInCents: 12800,
+  },
+  prod_UoHXDaN7e47LAU: {
+    planType: "MONTHLY_JUNIOR_1YR",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "Kids Membership (Monthly)",
+    sessionsIncluded: null,
+    commitmentMonths: 12,
+    priceInCents: 7500,
+  },
+  prod_UoHXwBh78aWwYl: {
+    planType: "MONTHLY_NSF_6MO",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "NSF Membership (Monthly)",
+    sessionsIncluded: null,
+    commitmentMonths: 6,
+    priceInCents: 17500,
+  },
 };
 
 /**

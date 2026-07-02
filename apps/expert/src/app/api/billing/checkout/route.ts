@@ -39,20 +39,19 @@ function nextMonthStartUnix(): number {
   return Math.floor(utcMs / 1000);
 }
 
-// tier → Stripe prices. `recurringPrice` is the monthly subscription price (first
-// charge on the 1st); `oneTimePrice` is the same amount as a one-time price,
-// charged at signup to cover the current month in full.
-// TODO(go-live): replace these TEST price IDs with the LIVE price IDs.
+// tier → Stripe prices (LIVE). `recurringPrice` is the monthly subscription
+// price (first charge on the 1st); `oneTimePrice` is the same amount as a
+// one-time price, charged at signup to cover the current month in full.
 const TIERS: Record<
   string,
   { recurringPrice: string; oneTimePrice: string; label: string }
 > = {
-  adult_175: { recurringPrice: "price_1Tjjm7F5WGAAdASV0n7J0PB5", oneTimePrice: "price_1Tk5HXF5WGAAdASVZqQh6h3u", label: "Adult $175/mo" },
-  adult_190: { recurringPrice: "price_1Tjjm9F5WGAAdASVW7gqNFW5", oneTimePrice: "price_1Tk5HYF5WGAAdASVQRdLxzcT", label: "Adult $190/mo" },
-  student_98: { recurringPrice: "price_1TjjmBF5WGAAdASVBomXs5WY", oneTimePrice: "price_1Tk5HYF5WGAAdASVEoWF88Ut", label: "Student $98/mo" },
-  mt_student_128: { recurringPrice: "price_1TjjmDF5WGAAdASV1ajRR7MS", oneTimePrice: "price_1Tk5HZF5WGAAdASVtcqpE3tb", label: "Muay Thai Student $128/mo" },
-  kids_75: { recurringPrice: "price_1TjjmFF5WGAAdASVg2UMng5O", oneTimePrice: "price_1Tk5HZF5WGAAdASVHuQKCKUa", label: "Kids $75/mo" },
-  nsf_175: { recurringPrice: "price_1Tjk9BF5WGAAdASViGTJpsbw", oneTimePrice: "price_1Tk5HaF5WGAAdASVKDgAg2nV", label: "NSF $175/mo" },
+  adult_175: { recurringPrice: "price_1ToeyZF5WGAAdASVAF07lvBD", oneTimePrice: "price_1ToeyaF5WGAAdASV0acqdIZz", label: "Adult $175/mo" },
+  adult_190: { recurringPrice: "price_1ToeybF5WGAAdASVimS7DTy8", oneTimePrice: "price_1ToeybF5WGAAdASV8ILpzCM9", label: "Adult $190/mo" },
+  student_98: { recurringPrice: "price_1ToeycF5WGAAdASV95y98NZm", oneTimePrice: "price_1ToeycF5WGAAdASVIh80XWzG", label: "Student $98/mo" },
+  mt_student_128: { recurringPrice: "price_1ToeydF5WGAAdASV4v2Efgor", oneTimePrice: "price_1ToeydF5WGAAdASVc4mHLEHd", label: "Muay Thai Student $128/mo" },
+  kids_75: { recurringPrice: "price_1ToeyeF5WGAAdASVf9Ol72Re", oneTimePrice: "price_1ToeyeF5WGAAdASVYAbKXbpf", label: "Kids $75/mo" },
+  nsf_175: { recurringPrice: "price_1ToeyfF5WGAAdASVNd5s6tQn", oneTimePrice: "price_1ToeygF5WGAAdASVBXbazmGI", label: "NSF $175/mo" },
 };
 
 type Mode = "subscribe" | "save_card";
