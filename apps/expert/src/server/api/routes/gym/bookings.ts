@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { refundCredits } from "~/server/services/creditsService";
 
 export const bookingsRouter = createTRPCRouter({
   // Get all bookings (filtered by instructor for coaches)
@@ -260,6 +261,9 @@ export const bookingsRouter = createTRPCRouter({
           where: { id: booking.sessionId },
           data: { bookedCount: { decrement: 1 } },
         });
+        // Return any credits spent on this booking (no-op if it wasn't paid
+        // with credits).
+        await refundCredits(booking.id);
       }
 
       return ctx.db.classBooking.update({
@@ -299,6 +303,7 @@ export const bookingsRouter = createTRPCRouter({
           where: { id: booking.sessionId },
           data: { bookedCount: { decrement: 1 } },
         });
+        await refundCredits(booking.id);
       }
 
       // If confirming a cancelled booking, increment count
@@ -375,6 +380,9 @@ export const bookingsRouter = createTRPCRouter({
           where: { id: booking.sessionId },
           data: { bookedCount: { decrement: 1 } },
         });
+        // Refund credits before the hard delete (the booking row, and its
+        // unique bookingId on the ledger, are about to go away).
+        await refundCredits(booking.id);
       }
 
       return ctx.db.classBooking.delete({

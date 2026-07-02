@@ -43,6 +43,7 @@ export const classTypesRouter = createTRPCRouter({
         defaultCapacity: z.number().min(1).default(12),
         isOpenGym: z.boolean().default(false),
         color: z.string().optional(),
+        creditCost: z.number().int().min(0).default(1),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -63,6 +64,7 @@ export const classTypesRouter = createTRPCRouter({
         defaultCapacity: z.number().min(1).optional(),
         isOpenGym: z.boolean().optional(),
         color: z.string().optional(),
+        creditCost: z.number().int().min(0).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

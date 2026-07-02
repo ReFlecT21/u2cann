@@ -21,6 +21,7 @@ export type ClassType = {
   defaultCapacity: number;
   isOpenGym: boolean;
   color: string | null;
+  creditCost: number;
 };
 
 export function getColumns({
@@ -60,6 +61,15 @@ export function getColumns({
       accessorKey: "defaultCapacity",
       header: t("defaultCapacity"),
       cell: ({ row }) => row.original.defaultCapacity,
+    },
+    {
+      accessorKey: "creditCost",
+      header: "Credit cost",
+      cell: ({ row }) => (
+        <Badge variant="outline">
+          {row.original.creditCost} credit{row.original.creditCost === 1 ? "" : "s"}
+        </Badge>
+      ),
     },
     {
       accessorKey: "isOpenGym",

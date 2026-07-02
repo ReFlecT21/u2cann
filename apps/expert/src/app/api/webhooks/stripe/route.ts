@@ -8,6 +8,7 @@ import {
   getFlexiExpiryMonths,
 } from "~/config/stripe-products";
 import { mapStripeStatusToInternal } from "~/server/services/membershipService";
+import { grantCredits } from "~/server/services/creditsService";
 import { sendWelcomeEmail } from "~/server/services/emailService";
 import { reconcileUserAccessSafe } from "~/server/lib/accessReconciler";
 
@@ -94,6 +95,56 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const product = lineItem.price.product as Stripe.Product;
   const productId = product.id;
   const priceId = lineItem.price.id;
+
+  // Credit-pack purchase? These are admin-managed in the DB and grant credits
+  // to the user's wallet. They are booking-only: NO membership is created and
+  // NO door access is granted. Checked before the membership path so a credit
+  // product never falls through to plan handling.
+  // Match on product id OR price id, whichever the admin registered.
+  const creditProduct = await db.creditProduct.findFirst({
+    where: {
+      OR: [{ stripeProductId: productId }, { stripePriceId: priceId }],
+    },
+  });
+  if (creditProduct) {
+    if (!creditProduct.isActive) {
+      console.warn(
+        `[Stripe Webhook] Credit product ${productId} is inactive; skipping grant`
+      );
+      return;
+    }
+
+    const clerkUser = await findOrCreateClerkUser(
+      customerEmail,
+      session.customer_details?.name
+    );
+    const dbUser = await ensureDbUser(
+      clerkUser.id,
+      customerEmail,
+      session.customer_details?.name
+    );
+
+    await grantCredits({
+      userId: dbUser.id,
+      amount: creditProduct.creditsGranted,
+      type: "PURCHASE",
+      productId: creditProduct.id,
+      sourceRef: session.id,
+      reason: `Purchase: ${creditProduct.name}`,
+    });
+
+    console.log(
+      `[Stripe Webhook] Granted ${creditProduct.creditsGranted} credits to ${dbUser.id} (${creditProduct.name})`
+    );
+
+    await sendWelcomeEmail({
+      to: customerEmail,
+      firstName: session.customer_details?.name?.split(" ")[0],
+    });
+
+    // Intentionally NO UserMembership and NO door-access reconcile.
+    return;
+  }
 
   const planConfig = getPlanFromStripeProduct(productId);
   if (!planConfig) {
@@ -206,13 +257,23 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   });
 
   if (existingMembership && planConfig.category === "MONTHLY_SUBSCRIPTION") {
-    // Renewal: extend the existing membership by 1 month from current expiry (or from now if expired)
-    const extendFrom =
-      existingMembership.currentPeriodEnd && existingMembership.currentPeriodEnd > now
-        ? new Date(existingMembership.currentPeriodEnd)
-        : now;
-    const newPeriodEnd = new Date(extendFrom);
-    newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
+    // Work out the new period end:
+    // - Real Stripe subscription (subscriptionId present): use the
+    //   subscription's actual period end (already fetched into currentPeriodEnd).
+    // - One-time PayNow renewal (no subscriptionId): extend by 1 month from the
+    //   current expiry (or now if lapsed).
+    let newPeriodEnd: Date;
+    if (subscriptionId && currentPeriodEnd) {
+      newPeriodEnd = currentPeriodEnd;
+    } else {
+      const extendFrom =
+        existingMembership.currentPeriodEnd &&
+        existingMembership.currentPeriodEnd > now
+          ? new Date(existingMembership.currentPeriodEnd)
+          : now;
+      newPeriodEnd = new Date(extendFrom);
+      newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
+    }
 
     await db.userMembership.update({
       where: { id: existingMembership.id },
@@ -223,11 +284,20 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         paymentMethod,
         paymentMethodDetails,
         stripeCustomerId: customerId,
+        // Store the subscription id so future customer.subscription.* events
+        // (renewals, cancellations, failed payments) sync to THIS membership.
+        // Only set it when we actually have one — never clobber an existing id
+        // with null on a one-time PayNow top-up.
+        ...(subscriptionId ? { stripeSubscriptionId: subscriptionId } : {}),
+        // Keep the commitment window in sync when the plan defines one.
+        ...(commitmentEndDate ? { commitmentEndDate } : {}),
       },
     });
 
     console.log(
-      `[Stripe Webhook] Renewed membership ${existingMembership.id} for user ${dbUser.id}, new expiry: ${newPeriodEnd.toISOString()}`
+      `[Stripe Webhook] Renewed membership ${existingMembership.id} for user ${dbUser.id}` +
+        (subscriptionId ? ` (subscription ${subscriptionId})` : "") +
+        `, new expiry: ${newPeriodEnd.toISOString()}`
     );
   } else if (existingMembership && planConfig.category === "FLEXI_PACKAGE") {
     // Flexi top-up: add sessions to existing package

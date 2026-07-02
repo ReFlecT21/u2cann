@@ -1,10 +1,11 @@
 "use client";
 
-import { CreditCard, Infinity, AlertCircle } from "lucide-react";
+import { CreditCard, Infinity, AlertCircle, Coins } from "lucide-react";
 import { api } from "~/trpc/react";
 
 export function MembershipBadge() {
   const { data: membership, isLoading } = api.gym.public.checkMembership.useQuery();
+  const { data: creditBalance = 0 } = api.gym.credits.getMyBalance.useQuery();
 
   if (isLoading) {
     return (
@@ -13,6 +14,18 @@ export function MembershipBadge() {
   }
 
   if (!membership?.isValid) {
+    // No membership, but they may have a credit wallet to book with.
+    if (creditBalance > 0) {
+      return (
+        <div className="inline-flex items-center gap-2 bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 px-4 py-2 rounded-full text-sm font-medium">
+          <Coins className="h-4 w-4" />
+          <span>
+            {creditBalance} credit{creditBalance === 1 ? "" : "s"}
+          </span>
+        </div>
+      );
+    }
+
     return (
       <div className="inline-flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 px-4 py-2 rounded-full text-sm font-medium">
         <AlertCircle className="h-4 w-4" />

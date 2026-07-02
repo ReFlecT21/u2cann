@@ -42,6 +42,7 @@ const formSchema = z.object({
   defaultCapacity: z.coerce.number().min(1, "Capacity must be at least 1"),
   isOpenGym: z.boolean().default(false),
   color: z.string().optional(),
+  creditCost: z.coerce.number().int().min(0).default(1),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -181,6 +182,7 @@ export default function ClassTypesPage() {
       defaultCapacity: 12,
       isOpenGym: false,
       color: "#3B82F6",
+      creditCost: 1,
     },
   });
 
@@ -194,6 +196,7 @@ export default function ClassTypesPage() {
         defaultCapacity: editingClassType.defaultCapacity,
         isOpenGym: editingClassType.isOpenGym,
         color: editingClassType.color || "#3B82F6",
+        creditCost: editingClassType.creditCost ?? 1,
       });
     } else {
       form.reset({
@@ -204,6 +207,7 @@ export default function ClassTypesPage() {
         defaultCapacity: 12,
         isOpenGym: false,
         color: "#3B82F6",
+        creditCost: 1,
       });
     }
   }, [editingClassType, form]);
@@ -328,6 +332,24 @@ export default function ClassTypesPage() {
                         )}
                       />
                     </div>
+                    <FormField
+                      control={form.control}
+                      name="creditCost"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Credit cost</FormLabel>
+                          <FormControl>
+                            <Input type="number" min={0} step={1} {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Credits a credit-pack member spends to book this
+                            class. Default 1. Does not affect membership/flexi
+                            bookings.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="color"

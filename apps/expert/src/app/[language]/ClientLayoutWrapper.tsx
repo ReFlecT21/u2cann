@@ -10,6 +10,7 @@ import {
   ClipboardList,
   CalendarDays,
   Camera,
+  Coins,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { SidebarData } from "@adh/ui/custom/layout/app-sidebar";
@@ -98,6 +99,12 @@ export default function ClientLayoutWrapper({
               title: t("Settings.Instructors"),
               url: `/${locale}/gym/instructors`,
               icon: Users,
+            },
+            {
+              isCollapsible: false,
+              title: "Credits",
+              url: `/${locale}/gym/credits`,
+              icon: Coins,
             },
             {
               isCollapsible: false,

@@ -16,6 +16,10 @@ const publicRoutes = createRouteMatcher([
   "/api/webhooks/stripe",
   "/api/webhooks/clerk",
   "/api/webhooks/hikvision",
+  // Customer-facing billing links (members click these to pay / save card).
+  // Public on purpose — members aren't logged in.
+  "/api/billing/(.*)",
+  "/billing/(.*)",
   "/api/trpc/(.*)",
   // Cron routes authenticate via CRON_SECRET bearer, not Clerk
   "/api/cron/(.*)",

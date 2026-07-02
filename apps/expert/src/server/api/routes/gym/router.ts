@@ -10,6 +10,7 @@ import { dashboardRouter } from "./dashboard";
 import { closuresRouter } from "./closures";
 import { faceEnrollmentRouter } from "./faceEnrollment";
 import { hikvisionDevicesRouter } from "./hikvisionDevices";
+import { creditsRouter } from "./credits";
 
 export const gymRouter = createTRPCRouter({
   // Public endpoints (no auth required)
@@ -26,4 +27,5 @@ export const gymRouter = createTRPCRouter({
   closures: closuresRouter,
   faceEnrollment: faceEnrollmentRouter,
   hikvisionDevices: hikvisionDevicesRouter,
+  credits: creditsRouter,
 });

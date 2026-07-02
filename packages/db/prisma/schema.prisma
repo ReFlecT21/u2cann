@@ -2,6 +2,7 @@ generator client {
   provider = "prisma-client-js"
   binaryTargets = ["native", "linux-musl", "rhel-openssl-1.1.x"]
   engineType = "library"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -46,6 +47,10 @@ model user {
   classBookings ClassBooking[]
   memberships   UserMembership[]
   faceProfile   FaceProfile?
+
+  // Credits feature (parallel to memberships; booking-only, never expires)
+  creditWallet       CreditWallet?
+  creditTransactions CreditTransaction[]
 }
 
 // ======================
@@ -61,6 +66,9 @@ model GymClassType {
   defaultCapacity Int      @default(12)
   isOpenGym       Boolean  @default(false)
   color           String?  // hex for UI
+  // Number of credits a credit-pack member spends to book a class of this
+  // type. Defaults to 1. Does not affect membership/flexi bookings.
+  creditCost      Int      @default(1)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -304,6 +312,80 @@ model StripeEvent {
   processedAt   DateTime @default(now())
 
   @@map("stripe_events")
+}
+
+// ======================
+// Credits Feature Models
+// ======================
+//
+// Credits are a standalone, never-expiring "class pack" wallet that runs in
+// parallel to memberships. Buying a CreditProduct grants credits; booking a
+// class spends GymClassType.creditCost credits. Credits do NOT grant gym door
+// access and never create a UserMembership.
+
+enum CreditTransactionType {
+  PURCHASE       // bought a credit pack via Stripe
+  BOOKING_SPEND  // spent on a class booking
+  BOOKING_REFUND // booking cancelled, credits returned
+  ADMIN_ADJUST   // manual grant/revoke by an admin
+}
+
+// Admin-managed mapping of a Stripe product to a credit grant. The webhook
+// looks this up by stripeProductId; a hit grants credits (and skips the
+// membership path entirely).
+model CreditProduct {
+  id              String   @id @default(cuid())
+  // Either of these may be set; the webhook matches a purchase on whichever
+  // is filled in (product id OR price id). At least one must be present.
+  stripeProductId String?  @unique
+  stripePriceId   String?  @unique
+  name            String
+  creditsGranted  Int
+  priceInCents    Int
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  transactions CreditTransaction[]
+
+  @@map("credit_products")
+}
+
+model CreditWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0) // never negative, never expires
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions CreditTransaction[]
+
+  @@map("credit_wallets")
+}
+
+// Append-only ledger. A booking is paid by EITHER a SessionUsage (membership)
+// OR a BOOKING_SPEND CreditTransaction (credits), never both — so cancellation
+// knows which source to refund. bookingId is unique to enforce that.
+model CreditTransaction {
+  id           String                @id @default(cuid())
+  walletId     String
+  wallet       CreditWallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  userId       String // denormalized for per-user queries
+  user         user                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         CreditTransactionType
+  amount       Int // signed: +grant / -spend
+  balanceAfter Int // running balance snapshot
+  reason       String?
+  bookingId    String?               @unique // set for BOOKING_SPEND / BOOKING_REFUND
+  productId    String?
+  product      CreditProduct?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sourceRef    String? // Stripe event/session id, or admin userId
+  createdAt    DateTime              @default(now())
+
+  @@index([userId])
+  @@index([walletId])
+  @@map("credit_transactions")
 }
 
 // ======================

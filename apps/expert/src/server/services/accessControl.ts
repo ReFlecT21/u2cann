@@ -6,6 +6,10 @@ export type AccessReason =
   | "staff_bypass"
   | "active_member_unrestricted"
   | "active_member_within_booking"
+  // Entry granted purely off a confirmed booking in the class window, with no
+  // door-granting membership. This is how credit-pack buyers (credits are
+  // booking-only) get in for the classes they've booked.
+  | "confirmed_booking"
   | "no_membership"
   | "payment_pending"
   | "membership_expired"
@@ -19,6 +23,7 @@ const ALLOWED_REASONS = new Set<AccessReason>([
   "staff_bypass",
   "active_member_unrestricted",
   "active_member_within_booking",
+  "confirmed_booking",
 ]);
 
 export interface AccessDecision {
@@ -37,6 +42,33 @@ const BOOKING_POST_MINUTES = 30;
 
 export function isAllowedReason(reason: AccessReason): boolean {
   return ALLOWED_REASONS.has(reason);
+}
+
+/**
+ * Does the user have a confirmed booking for a session happening around
+ * `atTime`? Window: from BOOKING_PRE_MINUTES before start through
+ * BOOKING_POST_MINUTES after end. Returns the booking id, or null.
+ */
+async function findBookingInWindow(
+  userId: string,
+  atTime: Date,
+): Promise<string | null> {
+  const windowOpen = new Date(atTime.getTime() - BOOKING_POST_MINUTES * 60_000);
+  const windowClose = new Date(atTime.getTime() + BOOKING_PRE_MINUTES * 60_000);
+  const booking = await db.classBooking.findFirst({
+    where: {
+      userId,
+      status: "confirmed",
+      session: {
+        isCancelled: false,
+        // session is starting soon (<= now + PRE) and hasn't long ended (>= now - POST)
+        startTime: { lte: windowClose },
+        endTime: { gte: windowOpen },
+      },
+    },
+    select: { id: true },
+  });
+  return booking?.id ?? null;
 }
 
 /**
@@ -82,14 +114,9 @@ export async function evaluateAccess(
     ],
   });
 
-  if (memberships.length === 0) {
-    return {
-      allowed: false,
-      reason: "no_membership",
-      membershipId: null,
-      expiresAt: null,
-    };
-  }
+  // Note: we don't early-return on zero memberships — a credit-pack buyer has
+  // no membership but may still have a booking that opens the door (checked
+  // after the membership loop below). worstReason defaults to no_membership.
 
   // Track the "best" non-active state to report when no membership is usable.
   // Priority: payment_pending > paused > expired > cancelled (most actionable first).
@@ -159,27 +186,8 @@ export async function evaluateAccess(
 
     // Plan requires a current booking to enter — check that.
     if (m.plan.requiresBookingForEntry) {
-      const windowOpen = new Date(atTime.getTime() - BOOKING_POST_MINUTES * 60_000);
-      const windowClose = new Date(atTime.getTime() + BOOKING_PRE_MINUTES * 60_000);
-      const booking = await db.classBooking.findFirst({
-        where: {
-          userId,
-          status: "confirmed",
-          session: {
-            isCancelled: false,
-            // session.startTime in [now - POST, now + PRE]
-            // i.e. user can enter 15 min before start through 30 min after start
-            // For end-of-class coverage we use endTime instead:
-            // Actually want: session ongoing OR starting soon OR just ended
-            //   session.startTime <= now + PRE_MIN
-            //   session.endTime   >= now - POST_MIN
-            startTime: { lte: windowClose },
-            endTime: { gte: windowOpen },
-          },
-        },
-        select: { id: true },
-      });
-      if (!booking) {
+      const bookingId = await findBookingInWindow(userId, atTime);
+      if (!bookingId) {
         return {
           allowed: false,
           reason: "plan_requires_booking_no_booking",
@@ -203,6 +211,19 @@ export async function evaluateAccess(
     };
   }
 
+  // No usable membership. A confirmed booking for a class happening now still
+  // opens the door — this is how credit-pack buyers (credits are booking-only,
+  // they hold no membership) get in for the classes they've booked.
+  const bookingId = await findBookingInWindow(userId, atTime);
+  if (bookingId) {
+    return {
+      allowed: true,
+      reason: "confirmed_booking",
+      membershipId: null,
+      expiresAt: null,
+    };
+  }
+
   return {
     allowed: false,
     reason: worstReason,
@@ -223,6 +244,8 @@ export function describeAccessReason(reason: AccessReason): string {
       return "Active membership";
     case "active_member_within_booking":
       return "Active membership with booked session";
+    case "confirmed_booking":
+      return "Booked class in progress (credit/booking entry)";
     case "no_membership":
       return "No active membership on file";
     case "payment_pending":

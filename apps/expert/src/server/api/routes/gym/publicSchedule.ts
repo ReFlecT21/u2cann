@@ -7,6 +7,11 @@ import {
   refundSession,
   getUserMembershipSummary,
 } from "~/server/services/membershipService";
+import {
+  validateCreditsForBooking,
+  spendCredits,
+  refundCredits,
+} from "~/server/services/creditsService";
 
 export const publicScheduleRouter = createTRPCRouter({
   // Get weekly schedule for public display
@@ -385,16 +390,38 @@ export const publicScheduleRouter = createTRPCRouter({
         });
       }
 
-      // Validate membership
+      // Resolve how this booking will be paid for.
+      // Priority: a valid membership (flexi/subscription) is used first; if the
+      // user has none, fall back to their credit wallet.
       const membershipCheck = await validateMembershipForBooking(userId);
 
-      if (!membershipCheck.isValid) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message:
-            membershipCheck.reason ||
-            "No active membership. Please purchase a membership to book classes.",
+      let paymentSource: "membership" | "credits";
+      let creditCost = 0;
+
+      if (membershipCheck.isValid) {
+        paymentSource = "membership";
+      } else {
+        // Need the class type to know the credit cost.
+        const sessionForCredits = await ctx.db.classSession.findUnique({
+          where: { id: input.sessionId },
+          select: { classTypeId: true },
         });
+        const creditCheck = sessionForCredits
+          ? await validateCreditsForBooking(userId, sessionForCredits.classTypeId)
+          : { isValid: false, cost: 0, reason: "Session not found" };
+
+        if (creditCheck.isValid) {
+          paymentSource = "credits";
+          creditCost = creditCheck.cost;
+        } else {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message:
+              membershipCheck.reason && creditCheck.reason
+                ? `No active membership, and ${creditCheck.reason.toLowerCase()}. Please buy a membership or a credit pack to book classes.`
+                : "No active membership or credits. Please buy a membership or a credit pack to book classes.",
+          });
+        }
       }
 
       // Create booking within transaction
@@ -494,6 +521,19 @@ export const publicScheduleRouter = createTRPCRouter({
             data: { bookedCount: { increment: 1 } },
           });
 
+          // Spend credits inside the same transaction so the deduction is
+          // atomic with the booking (overspend-safe). A throw here rolls the
+          // whole booking back.
+          if (paymentSource === "credits") {
+            await spendCredits({
+              tx,
+              userId,
+              amount: creditCost,
+              bookingId: booking.id,
+              reason: "Class booking",
+            });
+          }
+
           return booking;
         },
         {
@@ -502,20 +542,36 @@ export const publicScheduleRouter = createTRPCRouter({
         }
       );
 
-      // Deduct session from membership (outside transaction for proper handling)
-      await deductSession(membershipCheck.membershipId!, result.id);
+      // For memberships, record/deduct the session after the transaction
+      // (unchanged flexi behavior). Credits were already spent inside the tx.
+      if (paymentSource === "membership") {
+        await deductSession(membershipCheck.membershipId!, result.id);
 
-      // Get updated membership status
-      const updatedMembership = await validateMembershipForBooking(userId);
+        const updatedMembership = await validateMembershipForBooking(userId);
+        return {
+          success: true,
+          confirmationCode: result.confirmationCode,
+          booking: result,
+          membershipInfo: {
+            type: membershipCheck.membershipType,
+            sessionsRemaining: updatedMembership.sessionsRemaining,
+            planName: membershipCheck.planName,
+          },
+        };
+      }
+
+      // Credits path
+      const balanceRemaining = await ctx.db.creditWallet
+        .findUnique({ where: { userId }, select: { balance: true } })
+        .then((w) => w?.balance ?? 0);
 
       return {
         success: true,
         confirmationCode: result.confirmationCode,
         booking: result,
-        membershipInfo: {
-          type: membershipCheck.membershipType,
-          sessionsRemaining: updatedMembership.sessionsRemaining,
-          planName: membershipCheck.planName,
+        creditInfo: {
+          used: creditCost,
+          balanceRemaining,
         },
       };
     }),
@@ -579,12 +635,17 @@ export const publicScheduleRouter = createTRPCRouter({
           data: { bookedCount: { decrement: 1 } },
         });
 
-        // Refund session to membership
-        await refundSession(booking.id);
+        // Refund to whichever source paid for the booking. refundSession
+        // returns false when there was no membership SessionUsage, which is
+        // exactly the credit-paid case.
+        const refundedSession = await refundSession(booking.id);
+        if (!refundedSession) {
+          await refundCredits(booking.id);
+        }
 
         return {
           success: true,
-          message: "Booking cancelled and session refunded",
+          message: "Booking cancelled and refunded",
         };
       });
     }),

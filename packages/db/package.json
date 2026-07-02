@@ -28,6 +28,8 @@
     "postinstall": "pnpm sync"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@prisma/adapter-neon": "5.19.1",
     "@prisma/client": "^5.19.1",
     "@t3-oss/env-nextjs": "^0.11.1",
     "dotenv-cli": "^7.4.2",
