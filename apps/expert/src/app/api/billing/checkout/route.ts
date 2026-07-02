@@ -96,10 +96,12 @@ export async function GET(req: NextRequest) {
           { price: tier.recurringPrice, quantity: 1 },
           { price: tier.oneTimePrice, quantity: 1 },
         ],
-        subscription_data: {
-          billing_cycle_anchor: nextMonthStartUnix(),
-          proration_behavior: "none",
-        },
+        // trial_end = 1st of next month: the recurring price is in trial ($0
+        // now, first full charge on the 1st, then monthly on the 1st) while the
+        // one-time price charges the full current month at checkout. (Can't use
+        // billing_cycle_anchor + proration_behavior:none alongside a one-time
+        // price — Stripe rejects that combo.)
+        subscription_data: { trial_end: nextMonthStartUnix() },
         ...(email ? { customer_email: email } : {}),
         success_url,
         cancel_url,
