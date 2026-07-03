@@ -1,9 +1,10 @@
 # Permanent DB fix — Neon serverless driver
 
-**Date:** 2026-06-20
-**Scope:** local dev (and a small win for prod). Switches `packages/db` from the
-raw Postgres TCP connection (port 5432) to **Neon's serverless driver**, which
-speaks Postgres over a **WebSocket on port 443**.
+**Date:** 2026-06-20 (updated 2026-07-03)
+**Scope:** **local dev only.** Switches `packages/db` to **Neon's serverless
+driver** (Postgres over a **WebSocket on port 443**) *in development*.
+Production keeps the plain Prisma connection — the serverless WebSocket pool
+breaks on Vercel serverless (see Notes & caveats).
 
 ---
 
@@ -140,7 +141,12 @@ No connect/pool timeouts. For comparison, **with WARP on** the same connect was
   `connect_timeout=30` and `pool_timeout=30` params left on `PRISMA_URL` in
   `.env` are there for those CLI operations on slow networks; the runtime client
   ignores them (they're stripped before the Neon pool sees the URL).
-- **Production** was never affected by the local network issues, but it benefits
-  from the same driver (lower connection overhead, no 5432 dependency).
+- **⚠️ The adapter is DEV-ONLY — production uses plain Prisma.** The serverless
+  WebSocket Pool causes `Connection terminated unexpectedly` on Vercel serverless
+  functions (they freeze/thaw between invocations and the pooled socket dies).
+  Production never had the local latency problem, so `createPrismaClient()` gates
+  on `env.NEXT_PUBLIC_NODE_ENV === "production"`: prod gets a plain
+  `new PrismaClient()`, dev gets the Neon adapter. **Do not enable the adapter in
+  production.**
 - **Version pinning matters:** keep `@prisma/adapter-neon` in lockstep with the
   Prisma version. If you bump Prisma, bump the adapter to match.
