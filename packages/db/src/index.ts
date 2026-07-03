@@ -5,29 +5,30 @@ import ws from "ws";
 
 import { env } from "../env";
 
-// Neon's serverless driver speaks Postgres over a WebSocket on port 443. This
-// sidesteps networks that block outbound 5432 *and* the WARP-detour latency
-// that tripped Prisma's connect/pool timeouts on local dev. In a Node runtime
-// we have to hand it a WebSocket implementation (browsers provide their own).
-neonConfig.webSocketConstructor = ws;
-
 const createPrismaClient = () => {
-  // The connection string carries a couple of Prisma-only query params
-  // (pool_timeout / connect_timeout) that the pg-style parser doesn't accept —
-  // strip them before handing the URL to the Neon pool.
+  // Production (e.g. Vercel serverless): use the plain pooled Postgres
+  // connection. It's reliable in the datacenter and avoids the Neon serverless
+  // WebSocket driver's "Connection terminated unexpectedly" errors when a
+  // serverless function is frozen/thawed between invocations. Prod never had
+  // the local connect/pool-timeout problem the serverless driver was added for.
+  if (env.NEXT_PUBLIC_NODE_ENV === "production") {
+    return new Prisma.PrismaClient({ log: ["error"] });
+  }
+
+  // Local dev only: Neon's serverless driver speaks Postgres over a WebSocket on
+  // port 443, dodging the connect/pool timeouts that high-latency networks (and
+  // the WARP US-detour) trip on the raw 5432 connection. See
+  // docs/neon-serverless-db-fix.md. Node needs a WebSocket implementation.
+  neonConfig.webSocketConstructor = ws;
   const url = new URL(env.PRISMA_URL);
+  // Strip Prisma-only query params the pg-style parser doesn't accept.
   url.searchParams.delete("pool_timeout");
   url.searchParams.delete("connect_timeout");
-
   const pool = new Pool({ connectionString: url.toString() });
-  const adapter = new PrismaNeon(pool);
 
   return new Prisma.PrismaClient({
-    adapter,
-    log:
-      env.NEXT_PUBLIC_NODE_ENV === "development"
-        ? ["error", "warn"]
-        : ["error"],
+    adapter: new PrismaNeon(pool),
+    log: ["error", "warn"],
   });
 };
 
