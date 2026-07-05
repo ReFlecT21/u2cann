@@ -332,9 +332,18 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   prod_UoHXf02Lp3jWNH: {
     planType: "MONTHLY_STUDENT",
     category: "MONTHLY_SUBSCRIPTION",
-    name: "Muay Thai Student (Monthly)",
+    name: "12 mnth student",
     sessionsIncluded: null,
     commitmentMonths: 1,
+    priceInCents: 12800,
+  },
+  // 3-month student — $128, split out from the shared $128 product for madaan.
+  prod_UpaFPuSGKDsJMB: {
+    planType: "MONTHLY_STUDENT_3MO",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "3 mnts student",
+    sessionsIncluded: null,
+    commitmentMonths: 3,
     priceInCents: 12800,
   },
   prod_UoHXDaN7e47LAU: {
