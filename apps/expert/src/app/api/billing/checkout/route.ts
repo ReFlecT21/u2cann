@@ -52,6 +52,7 @@ const TIERS: Record<
   mt_student_128: { recurringPrice: "price_1ToeydF5WGAAdASV4v2Efgor", oneTimePrice: "price_1ToeydF5WGAAdASVc4mHLEHd", label: "Muay Thai Student $128/mo" },
   kids_75: { recurringPrice: "price_1ToeyeF5WGAAdASVf9Ol72Re", oneTimePrice: "price_1ToeyeF5WGAAdASVYAbKXbpf", label: "Kids $75/mo" },
   nsf_175: { recurringPrice: "price_1ToeyfF5WGAAdASVNd5s6tQn", oneTimePrice: "price_1ToeygF5WGAAdASVBXbazmGI", label: "NSF $175/mo" },
+  young_warriors_90: { recurringPrice: "price_1TV8H7F5WGAAdASVgcBnv9es", oneTimePrice: "price_1Tprf2F5WGAAdASVIgDKzRxF", label: "Young Warriors $90/mo" },
 };
 
 type Mode = "subscribe" | "save_card";

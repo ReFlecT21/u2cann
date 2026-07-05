@@ -353,6 +353,15 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
     commitmentMonths: 6,
     priceInCents: 17500,
   },
+  // Young Warriors (junior) — $90/mo, reuses the existing live product.
+  prod_UU6UCUK1HyO71L: {
+    planType: "MONTHLY_JUNIOR_6MO",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "Young warriors",
+    sessionsIncluded: null,
+    commitmentMonths: 6,
+    priceInCents: 9000,
+  },
 };
 
 /**
