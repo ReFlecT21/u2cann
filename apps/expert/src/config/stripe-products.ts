@@ -362,6 +362,16 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
     commitmentMonths: 6,
     priceInCents: 9000,
   },
+  // Young Warriors x2 — $180/mo, one subscription covering two kids under a
+  // shared parent email.
+  prod_UpX7nwButHbXs8: {
+    planType: "MONTHLY_JUNIOR_3MO",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "young warriors x2 (2 kids)",
+    sessionsIncluded: null,
+    commitmentMonths: 3,
+    priceInCents: 18000,
+  },
 };
 
 /**

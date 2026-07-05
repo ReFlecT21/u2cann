@@ -53,6 +53,7 @@ const TIERS: Record<
   kids_75: { recurringPrice: "price_1ToeyeF5WGAAdASVf9Ol72Re", oneTimePrice: "price_1ToeyeF5WGAAdASVYAbKXbpf", label: "Kids $75/mo" },
   nsf_175: { recurringPrice: "price_1ToeyfF5WGAAdASVNd5s6tQn", oneTimePrice: "price_1ToeygF5WGAAdASVBXbazmGI", label: "NSF $175/mo" },
   young_warriors_90: { recurringPrice: "price_1TV8H7F5WGAAdASVgcBnv9es", oneTimePrice: "price_1Tprf2F5WGAAdASVIgDKzRxF", label: "Young Warriors $90/mo" },
+  young_warriors_180: { recurringPrice: "price_1Tps2oF5WGAAdASVycokbghg", oneTimePrice: "price_1Tps2oF5WGAAdASVV80BI8AS", label: "Young Warriors x2 $180/mo" },
 };
 
 type Mode = "subscribe" | "save_card";
