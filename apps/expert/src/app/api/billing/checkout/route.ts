@@ -105,6 +105,16 @@ export async function GET(req: NextRequest) {
         // billing_cycle_anchor + proration_behavior:none alongside a one-time
         // price — Stripe rejects that combo.)
         subscription_data: { trial_end: nextMonthStartUnix() },
+        // Force the member to tick "I agree to the Terms of Service" before they
+        // can pay. The linked ToS URL is configured in the Stripe Dashboard; the
+        // custom message restates the two key policies at the checkbox itself.
+        consent_collection: { terms_of_service: "required" },
+        custom_text: {
+          terms_of_service_acceptance: {
+            message:
+              "I agree to U2CAN Boxing's membership terms: (1) cancelling before the end of my committed period requires a penalty of 2 months' membership fees, and (2) a membership may be paused for a maximum of 1 month.",
+          },
+        },
         ...(email ? { customer_email: email } : {}),
         success_url,
         cancel_url,
