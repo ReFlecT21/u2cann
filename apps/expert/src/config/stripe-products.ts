@@ -371,6 +371,15 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
     commitmentMonths: 6,
     priceInCents: 9000,
   },
+  // "12 months muay thai student" — old live payment link, $128/mo.
+  prod_UAVX6aS5ajTWVq: {
+    planType: "MONTHLY_STUDENT_MT_1YR",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "12 months muay thai student",
+    sessionsIncluded: null,
+    commitmentMonths: 12,
+    priceInCents: 12800,
+  },
   // Young Warriors x2 — $180/mo, one subscription covering two kids under a
   // shared parent email.
   prod_UpX7nwButHbXs8: {

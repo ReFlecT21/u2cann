@@ -137,6 +137,16 @@ const config = {
   /** Enables hot reloading for local packages without a build step */
   transpilePackages: ["@adh/db", "@adh/ui", "@adh/validators"],
 
+  /**
+   * Keep `ws` out of the webpack bundle. Bundling it breaks its optional
+   * native helpers (bufferutil) with "bufferUtil.mask is not a function",
+   * which kills the Neon serverless WebSocket in local dev. Loading it as a
+   * regular Node module uses the pure-JS fallback correctly.
+   */
+  experimental: {
+    serverComponentsExternalPackages: ["ws"],
+  },
+
   /** We already do linting and typechecking as separate tasks in CI */
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },

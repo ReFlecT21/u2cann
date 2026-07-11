@@ -211,6 +211,8 @@ enum MembershipPlanType {
   MONTHLY_STUDENT_6MO
   MONTHLY_STUDENT_3MO
   MONTHLY_STUDENT
+  // Muay Thai student, 12-month commitment ($128/mo, old payment link)
+  MONTHLY_STUDENT_MT_1YR
   // Monthly - NSF/NSMEN
   MONTHLY_NSF_1YR
   MONTHLY_NSF_6MO
