@@ -18,8 +18,12 @@ const createPrismaClient = () => {
   // Local dev only: Neon's serverless driver speaks Postgres over a WebSocket on
   // port 443, dodging the connect/pool timeouts that high-latency networks (and
   // the WARP US-detour) trip on the raw 5432 connection. See
-  // docs/neon-serverless-db-fix.md. Node needs a WebSocket implementation.
-  neonConfig.webSocketConstructor = ws;
+  // docs/neon-serverless-db-fix.md. Prefer Node's built-in WebSocket (Node 22+):
+  // the `ws` package breaks when webpack bundles it ("bufferUtil.mask is not a
+  // function"), which killed dev DB connections. `ws` stays as a fallback for
+  // older Node runtimes only.
+  neonConfig.webSocketConstructor =
+    (globalThis as unknown as { WebSocket?: typeof ws }).WebSocket ?? ws;
   const url = new URL(env.PRISMA_URL);
   // Strip Prisma-only query params the pg-style parser doesn't accept.
   url.searchParams.delete("pool_timeout");
