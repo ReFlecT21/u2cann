@@ -213,7 +213,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       const subscription = await stripe!.subscriptions.retrieve(subscriptionId, {
         expand: ["default_payment_method"],
       });
-      currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+      currentPeriodEnd = subscriptionPeriod(subscription).end;
 
       // For subscriptions, get payment method from subscription if not already set
       if (!paymentMethod && subscription.default_payment_method) {
@@ -357,6 +357,32 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 }
 
 /**
+ * Newer Stripe API versions (2025-03+) moved current_period_start/end off the
+ * subscription onto its items — webhook payloads on those versions have NO
+ * top-level period fields, and `new Date(undefined * 1000)` is an Invalid Date
+ * that made every renewal update throw (memberships were stuck at their
+ * signup period end). Read item-level first, fall back to top-level.
+ */
+function subscriptionPeriod(subscription: Stripe.Subscription): {
+  start: Date | null;
+  end: Date | null;
+} {
+  const item = subscription.items?.data?.[0] as
+    | { current_period_start?: number; current_period_end?: number }
+    | undefined;
+  const legacy = subscription as unknown as {
+    current_period_start?: number;
+    current_period_end?: number;
+  };
+  const startTs = item?.current_period_start ?? legacy.current_period_start;
+  const endTs = item?.current_period_end ?? legacy.current_period_end;
+  return {
+    start: typeof startTs === "number" ? new Date(startTs * 1000) : null,
+    end: typeof endTs === "number" ? new Date(endTs * 1000) : null,
+  };
+}
+
+/**
  * Handle subscription updated event
  * Updates period dates and status
  */
@@ -372,11 +398,12 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     return;
   }
 
+  const period = subscriptionPeriod(subscription);
   await db.userMembership.update({
     where: { id: membership.id },
     data: {
-      currentPeriodStart: new Date(subscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      ...(period.start ? { currentPeriodStart: period.start } : {}),
+      ...(period.end ? { currentPeriodEnd: period.end } : {}),
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
       status: mapStripeStatusToInternal(subscription.status),
     },
