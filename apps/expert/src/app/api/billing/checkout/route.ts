@@ -82,11 +82,13 @@ export async function GET(req: NextRequest) {
 
     if (mode === "save_card") {
       // Save a card only — no charge, no subscription (for members on hold).
+      // Distinct success page: the default one says "membership active /
+      // you'll be charged", which is wrong (and misleading) for this mode.
       session = await stripe.checkout.sessions.create({
         mode: "setup",
         payment_method_types: ["card"],
         ...(email ? { customer_email: email } : {}),
-        success_url,
+        success_url: `${origin}/billing/card-saved`,
         cancel_url,
       });
     } else if (mode === "prorate") {
