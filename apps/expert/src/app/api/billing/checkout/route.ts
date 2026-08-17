@@ -51,6 +51,8 @@ const TIERS: Record<
   student_98: { recurringPrice: "price_1ToeycF5WGAAdASV95y98NZm", oneTimePrice: "price_1ToeycF5WGAAdASVIh80XWzG", label: "Student $98/mo" },
   student_128: { recurringPrice: "price_1ToeydF5WGAAdASV4v2Efgor", oneTimePrice: "price_1ToeydF5WGAAdASVc4mHLEHd", label: "12 mnth student $128/mo" },
   student_3mth_128: { recurringPrice: "price_1Tpv5UF5WGAAdASValokS6rx", oneTimePrice: "price_1Tpv5UF5WGAAdASVemwXQ4sW", label: "3 mnts student $128/mo" },
+  student_monthly_168: { recurringPrice: "price_1U5VDWF5WGAAdASVtWcWI34t", oneTimePrice: "price_1TnDAVF5WGAAdASVIdY13anD", label: "Students monthly $168/mo" },
+  student_6mth_140: { recurringPrice: "price_1U5VDXF5WGAAdASV6Ff57MaZ", oneTimePrice: "price_1U5VDYF5WGAAdASVMhjIwABA", label: "6 mnth student $140/mo" },
   kids_75: { recurringPrice: "price_1ToeyeF5WGAAdASVf9Ol72Re", oneTimePrice: "price_1ToeyeF5WGAAdASVYAbKXbpf", label: "Kids $75/mo" },
   nsf_175: { recurringPrice: "price_1ToeyfF5WGAAdASVNd5s6tQn", oneTimePrice: "price_1ToeygF5WGAAdASVBXbazmGI", label: "NSF $175/mo" },
   young_warriors_90: { recurringPrice: "price_1TV8H7F5WGAAdASVgcBnv9es", oneTimePrice: "price_1Tprf2F5WGAAdASVIgDKzRxF", label: "Young Warriors $90/mo" },

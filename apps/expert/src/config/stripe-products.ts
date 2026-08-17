@@ -380,6 +380,24 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
     commitmentMonths: 12,
     priceInCents: 12800,
   },
+  // "Students monthly" — $168/mo, no commitment.
+  prod_UmmjiYWgwtWOkt: {
+    planType: "MONTHLY_STUDENT",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "Students monthly",
+    sessionsIncluded: null,
+    commitmentMonths: 1,
+    priceInCents: 16800,
+  },
+  // "6 mnth student" — $140/mo, 6-month commitment.
+  prod_V5gazk4vRbUxlQ: {
+    planType: "MONTHLY_STUDENT_6MO",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "6 mnth student",
+    sessionsIncluded: null,
+    commitmentMonths: 6,
+    priceInCents: 14000,
+  },
   // Young Warriors x2 — $180/mo, one subscription covering two kids under a
   // shared parent email.
   prod_UpX7nwButHbXs8: {
