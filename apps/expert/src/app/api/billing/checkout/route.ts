@@ -14,8 +14,11 @@ import { env } from "~/env";
  *                same price no matter which day of the month they sign up), and
  *                start a subscription that RENEWS ON THE 1ST of every month at
  *                the full price. The recurring part doesn't charge until the 1st
- *                (billing_cycle_anchor + proration_behavior=none); the current
- *                month is covered by the one-time charge.
+ *                (trial_end anchors it); the current month is covered by the
+ *                one-time charge.
+ *   prorate    – charge a PRORATED amount NOW for the remaining days of the
+ *                current month (recurring price only + billing_cycle_anchor on
+ *                the 1st), then the full price on the 1st of every month.
  *   save_card  – save a card only (setup mode), no charge, no subscription.
  *                Use for members on hold/break; start them later.
  */
@@ -59,7 +62,7 @@ const TIERS: Record<
   young_warriors_180: { recurringPrice: "price_1Tps2oF5WGAAdASVycokbghg", oneTimePrice: "price_1Tps2oF5WGAAdASVV80BI8AS", label: "Young Warriors x2 $180/mo" },
 };
 
-type Mode = "subscribe" | "save_card";
+type Mode = "subscribe" | "prorate" | "save_card";
 
 export async function GET(req: NextRequest) {
   if (!stripe) {
@@ -82,6 +85,31 @@ export async function GET(req: NextRequest) {
       session = await stripe.checkout.sessions.create({
         mode: "setup",
         payment_method_types: ["card"],
+        ...(email ? { customer_email: email } : {}),
+        success_url,
+        cancel_url,
+      });
+    } else if (mode === "prorate") {
+      // prorate: recurring price only. billing_cycle_anchor on the 1st makes
+      // Checkout charge a prorated amount NOW for the remaining days of the
+      // current month, then the full price on the 1st of every month. (The
+      // one-time price can't be combined with an anchor, which is why the
+      // full-month "subscribe" mode uses trial_end instead.)
+      const tier = TIERS[tierKey];
+      if (!tier) {
+        return NextResponse.json({ error: `Unknown tier '${tierKey}'` }, { status: 400 });
+      }
+      session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [{ price: tier.recurringPrice, quantity: 1 }],
+        subscription_data: { billing_cycle_anchor: nextMonthStartUnix() },
+        consent_collection: { terms_of_service: "required" },
+        custom_text: {
+          terms_of_service_acceptance: {
+            message:
+              "I agree to U2CAN Boxing's membership terms: (1) cancelling before the end of my committed period requires a penalty of 2 months' membership fees, and (2) a membership may be paused for a maximum of 1 month.",
+          },
+        },
         ...(email ? { customer_email: email } : {}),
         success_url,
         cancel_url,
