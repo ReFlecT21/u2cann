@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { env } from "~/env";
 
 /**
@@ -72,7 +73,27 @@ export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
   const tierKey = searchParams.get("tier") ?? "";
   const mode = (searchParams.get("mode") ?? "subscribe") as Mode;
-  const email = searchParams.get("email") ?? undefined;
+
+  // Account-first: members must be signed in before paying so the checkout is
+  // locked to their verified account email (no typos, membership guaranteed to
+  // attach). Signed-out visitors go to /billing/start (email + OTP), which
+  // sends them right back here.
+  const { userId } = auth();
+  if (!userId) {
+    const startParams = new URLSearchParams();
+    if (tierKey) startParams.set("tier", tierKey);
+    if (searchParams.get("mode")) startParams.set("mode", mode);
+    return NextResponse.redirect(
+      `${origin}/billing/start?${startParams.toString()}`,
+      307,
+    );
+  }
+  const client = await clerkClient();
+  const clerkUser = await client.users.getUser(userId);
+  const email =
+    clerkUser.emailAddresses.find(
+      (e) => e.id === clerkUser.primaryEmailAddressId,
+    )?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress;
 
   const success_url = `${origin}/billing/done`;
   const cancel_url = `${origin}/billing/cancelled`;
