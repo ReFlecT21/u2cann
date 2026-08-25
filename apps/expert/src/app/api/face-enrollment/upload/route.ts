@@ -127,15 +127,16 @@ export async function POST(request: NextRequest) {
     where: { userId: subjectUserId },
   });
 
-  // Admin upload = auto-approved; member self-upload = pending approval
-  const approvalStatus = isAdminUpload ? "APPROVED" : "PENDING";
-  const approvalFields = isAdminUpload
-    ? { approvedBy: userId, approvedAt: new Date(), rejectionReason: null }
-    : {
-        approvedBy: null,
-        approvedAt: null,
-        rejectionReason: null,
-      };
+  // All uploads are auto-approved and pushed to the door cameras right away
+  // (member self-uploads included — the gym opted out of the manual approval
+  // step). Door entry is still gated by evaluateAccess / the reconciler, so a
+  // synced face never grants access on its own without a valid membership.
+  const approvalStatus = "APPROVED" as const;
+  const approvalFields = {
+    approvedBy: userId,
+    approvedAt: new Date(),
+    rejectionReason: null,
+  };
 
   let profile;
   if (existing) {
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Auto-approved (admin upload) → push to cameras in background
+  // Push to cameras in background
   if (profile.approvalStatus === "APPROVED") {
     void syncFaceProfile(profile.id).catch((err) => {
       console.error("[face-enrollment] sync failed", err);
