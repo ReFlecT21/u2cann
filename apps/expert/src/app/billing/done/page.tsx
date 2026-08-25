@@ -95,8 +95,7 @@ export default function BillingDonePage() {
         </h2>
         <p className="mb-4 text-sm text-muted-foreground">
           Upload a clear, front-facing photo (good lighting, no cap or mask).
-          Once the gym approves it, our door camera will recognise you and let
-          you in.
+          Our door camera will recognise you and let you in.
         </p>
 
         {!isLoaded ? (
@@ -114,10 +113,11 @@ export default function BillingDonePage() {
         ) : uploaded ? (
           <div className="flex flex-col items-center gap-2 py-4 text-center">
             <CheckCircle2 className="h-10 w-10 text-green-500" />
-            <p className="font-medium">Photo submitted!</p>
+            <p className="font-medium">Photo added!</p>
             <p className="text-sm text-muted-foreground">
-              The gym will review and approve it — after that, just walk up to
-              the door and it&apos;ll recognise you. You&apos;re all set.
+              Your face is being sent to the door camera now — give it a minute,
+              then just walk up to the door and it&apos;ll recognise you.
+              You&apos;re all set.
             </p>
           </div>
         ) : (
