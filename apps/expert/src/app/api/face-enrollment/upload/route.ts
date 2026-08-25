@@ -3,9 +3,32 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@adh/db";
 import { uploadToS3, deleteFromS3 } from "~/server/lib/s3";
 import { syncFaceProfile } from "~/server/lib/faceSync";
+import sharp from "sharp";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png"];
+
+// Hikvision face libraries reject large images (the camera drops the
+// connection — "socket hang up" — at roughly 200KB). Phone selfies are 1–2MB
+// at 12MP, so normalise every upload: EXIF-rotate, cap the longest edge, and
+// step JPEG quality down until it's comfortably under the camera's limit.
+const FACE_MAX_EDGE = 1080;
+const FACE_TARGET_BYTES = 180 * 1024;
+
+async function normalizeFaceImage(input: Buffer): Promise<Buffer> {
+  const base = sharp(input).rotate().resize({
+    width: FACE_MAX_EDGE,
+    height: FACE_MAX_EDGE,
+    fit: "inside",
+    withoutEnlargement: true,
+  });
+  let out = await base.clone().jpeg({ quality: 85, mozjpeg: true }).toBuffer();
+  for (const q of [75, 65, 55, 45]) {
+    if (out.length <= FACE_TARGET_BYTES) break;
+    out = await base.clone().jpeg({ quality: q, mozjpeg: true }).toBuffer();
+  }
+  return out;
+}
 
 async function generateEmployeeNumber(): Promise<string> {
   const result = await db.$queryRaw<Array<{ max_no: number | null }>>`
@@ -86,10 +109,19 @@ export async function POST(request: NextRequest) {
   }
 
   const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  const ext = file.type === "image/png" ? "png" : "jpg";
-  const key = `face-enrollment/${subjectUserId}/${Date.now()}.${ext}`;
-  const { url } = await uploadToS3(buffer, key, file.type);
+  let buffer: Buffer;
+  try {
+    buffer = await normalizeFaceImage(Buffer.from(bytes));
+  } catch (err) {
+    console.error("[face-enrollment] image normalisation failed", err);
+    return NextResponse.json(
+      { error: "Could not process that image — please try another photo" },
+      { status: 400 },
+    );
+  }
+  // Always stored as JPEG after normalisation, whatever was uploaded.
+  const key = `face-enrollment/${subjectUserId}/${Date.now()}.jpg`;
+  const { url } = await uploadToS3(buffer, key, "image/jpeg");
 
   const existing = await db.faceProfile.findUnique({
     where: { userId: subjectUserId },
