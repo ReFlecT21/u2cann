@@ -50,6 +50,10 @@ const DAYS_OF_WEEK = [
   "Saturday",
 ];
 
+// Column/display order: Monday first, Sunday last. DAYS_OF_WEEK stays
+// Sunday-indexed because index = the stored dayOfWeek value (0 = Sunday).
+const DISPLAY_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
 const templateFormSchema = z.object({
   classTypeId: z.string().min(1, "Class type is required"),
   instructorId: z.string().min(1, "Instructor is required"),
@@ -371,9 +375,9 @@ export default function SchedulePage() {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {DAYS_OF_WEEK.map((day, i) => (
+                                  {DISPLAY_DAY_ORDER.map((i) => (
                                     <SelectItem key={i} value={String(i)}>
-                                      {day}
+                                      {DAYS_OF_WEEK[i]}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -437,10 +441,10 @@ export default function SchedulePage() {
 
             {/* Weekly template grid */}
             <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-              {DAYS_OF_WEEK.map((day, dayIndex) => (
+              {DISPLAY_DAY_ORDER.map((dayIndex) => (
                 <Card key={dayIndex}>
                   <CardHeader className="py-3">
-                    <CardTitle className="text-sm font-medium">{day}</CardTitle>
+                    <CardTitle className="text-sm font-medium">{DAYS_OF_WEEK[dayIndex]}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {templatesByDay[dayIndex]?.length === 0 ? (
@@ -506,7 +510,7 @@ export default function SchedulePage() {
 
             {/* Weekly Sessions Grid */}
             <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-              {DAYS_OF_WEEK.map((day, dayIndex) => {
+              {DISPLAY_DAY_ORDER.map((dayIndex) => {
                 // Calculate the date for this day column
                 const dayOffset = dayIndex === 0 ? 6 : dayIndex - 1; // Monday = 0, Sunday = 6
                 const dayDate = addDays(weekStart, dayOffset);
@@ -516,7 +520,7 @@ export default function SchedulePage() {
                   <Card key={dayIndex} className="min-h-[200px]">
                     <CardHeader className="py-3 pb-2">
                       <CardTitle className="text-sm font-medium">
-                        <div>{day}</div>
+                        <div>{DAYS_OF_WEEK[dayIndex]}</div>
                         <div className="text-xs text-muted-foreground font-normal">
                           {format(dayDate, "MMM d")}
                         </div>
