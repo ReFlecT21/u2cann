@@ -150,8 +150,8 @@ export default function SchedulePage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {[1, 2, 3, 4, 5].map((i) => (
+          <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-7 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
               <div key={i} className="space-y-4">
                 <Skeleton className="h-8 w-32" />
                 <Skeleton className="h-24 w-full" />

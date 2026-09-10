@@ -52,19 +52,20 @@ export function WeeklyGrid({ sessions, weekStart, onSelectSession }: WeeklyGridP
     );
   }
 
-  // Get dates for each day of the week
+  // Get dates for each day of the week (forward from weekStart, so the
+  // Sunday column maps to the END of this week, not the previous Sunday)
   const getDayDate = (dayIndex: number) => {
     const date = new Date(weekStart);
-    const diff = dayIndex - date.getDay();
+    const diff = (dayIndex - date.getDay() + 7) % 7;
     date.setDate(date.getDate() + diff);
     return date;
   };
 
-  // Only show weekdays (Monday - Friday) by default
-  const displayDays = [1, 2, 3, 4, 5]; // Monday to Friday
+  // Full week, Monday through Sunday (weekend classes are bookable too)
+  const displayDays = [1, 2, 3, 4, 5, 6, 0];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-7 gap-4">
       {displayDays.map((dayIndex) => {
         const dayDate = getDayDate(dayIndex);
         const daySessions = groupedByDay[dayIndex] || [];
