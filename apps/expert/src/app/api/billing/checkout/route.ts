@@ -103,12 +103,22 @@ export async function GET(req: NextRequest) {
 
     if (mode === "save_card") {
       // Save a card only — no charge, no subscription (for members on hold).
+      // Setup-mode Checkout does NOT create or attach a Customer by itself:
+      // passing only customer_email leaves the saved card orphaned
+      // (payment_method.customer = null), so it can never actually be charged
+      // later. Resolve a real Customer for the verified account email first
+      // and attach the card to it.
+      let customerId: string | undefined;
+      if (email) {
+        const found = await stripe.customers.list({ email, limit: 1 });
+        customerId = found.data[0]?.id ?? (await stripe.customers.create({ email })).id;
+      }
       // Distinct success page: the default one says "membership active /
       // you'll be charged", which is wrong (and misleading) for this mode.
       session = await stripe.checkout.sessions.create({
         mode: "setup",
         payment_method_types: ["card"],
-        ...(email ? { customer_email: email } : {}),
+        ...(customerId ? { customer: customerId } : {}),
         success_url: `${origin}/billing/card-saved`,
         cancel_url,
       });
