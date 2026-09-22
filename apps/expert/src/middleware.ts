@@ -20,6 +20,8 @@ const publicRoutes = createRouteMatcher([
   // Public on purpose — members aren't logged in.
   "/api/billing/(.*)",
   "/billing/(.*)",
+  // Public weekly timetable consumed by the marketing website
+  "/api/public/(.*)",
   "/api/trpc/(.*)",
   // Cron routes authenticate via CRON_SECRET bearer, not Clerk
   "/api/cron/(.*)",
