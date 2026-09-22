@@ -3,9 +3,13 @@ import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const templatesRouter = createTRPCRouter({
-  // Get all templates
+  // Get all templates.
+  // Only ACTIVE ones: generateFromTemplates ignores inactive templates, so
+  // listing them here showed phantom classes that looked identical to live
+  // ones but never generated any sessions.
   getAll: protectedProcedure.query(async ({ ctx }) => {
     return ctx.db.classTemplate.findMany({
+      where: { isActive: true },
       include: {
         classType: true,
         instructor: true,
