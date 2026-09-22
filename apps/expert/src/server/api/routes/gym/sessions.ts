@@ -267,6 +267,18 @@ export const sessionsRouter = createTRPCRouter({
       endDate.setUTCHours(23, 59, 59, 999);
       endDate.setUTCMinutes(endDate.getUTCMinutes() - offsetMinutes);
 
+      // Load every session already in the range up front. This used to be one
+      // findFirst per template per day inside the loop below — ~40 sequential
+      // round-trips for a week and far more for longer ranges, which regularly
+      // blew the serverless function's time budget and surfaced as a 503.
+      const existingSessions = await ctx.db.classSession.findMany({
+        where: { startTime: { gte: currentDate, lte: endDate } },
+        select: { templateId: true, startTime: true },
+      });
+      const existingKeys = new Set(
+        existingSessions.map((s) => `${s.templateId}|${s.startTime.getTime()}`),
+      );
+
       while (currentDate <= endDate) {
         // Calculate day of week in user's local timezone
         const localDate = new Date(currentDate.getTime() - offsetMinutes * 60 * 1000);
@@ -291,15 +303,10 @@ export const sessionsRouter = createTRPCRouter({
           const endTime = new Date(currentDate);
           endTime.setUTCHours(endHour - offsetHours, endMin, 0, 0);
 
-          // Check if session already exists
-          const existing = await ctx.db.classSession.findFirst({
-            where: {
-              templateId: template.id,
-              startTime,
-            },
-          });
-
-          if (!existing) {
+          // Already generated (or queued earlier in this same run)?
+          const key = `${template.id}|${startTime.getTime()}`;
+          if (!existingKeys.has(key)) {
+            existingKeys.add(key);
             sessionsToCreate.push({
               classTypeId: template.classTypeId,
               instructorId: template.instructorId,

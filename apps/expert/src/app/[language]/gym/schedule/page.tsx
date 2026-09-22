@@ -160,8 +160,9 @@ export default function SchedulePage() {
       void ctx.gym.sessions.getAll.invalidate();
       setGenerateDialogOpen(false);
     },
-    onError: () => {
-      toast.error(`${t("toast.error.title")}: ${t("toast.error.description")}`);
+    // Surface the real reason — the generic copy hid a server timeout for weeks.
+    onError: (error) => {
+      toast.error(`${t("toast.error.title")}: ${error.message}`);
     },
   });
 
