@@ -273,11 +273,23 @@ export const sessionsRouter = createTRPCRouter({
       // blew the serverless function's time budget and surfaced as a 503.
       const existingSessions = await ctx.db.classSession.findMany({
         where: { startTime: { gte: currentDate, lte: endDate } },
-        select: { templateId: true, startTime: true },
+        select: { id: true, templateId: true, startTime: true, isCancelled: true },
       });
-      const existingKeys = new Set(
-        existingSessions.map((s) => `${s.templateId}|${s.startTime.getTime()}`),
-      );
+      // Live sessions block regeneration; cancelled ones get revived instead.
+      // Previously ANY existing row (cancelled included) caused the slot to be
+      // skipped, so once a class was cancelled it could never be regenerated —
+      // "Generate from Templates" silently did nothing for that slot.
+      const existingKeys = new Set<string>();
+      const cancelledIdByKey = new Map<string, string>();
+      for (const e of existingSessions) {
+        const k = `${e.templateId}|${e.startTime.getTime()}`;
+        if (e.isCancelled) {
+          if (!cancelledIdByKey.has(k)) cancelledIdByKey.set(k, e.id);
+        } else {
+          existingKeys.add(k);
+        }
+      }
+      const idsToRevive: string[] = [];
 
       while (currentDate <= endDate) {
         // Calculate day of week in user's local timezone
@@ -305,8 +317,15 @@ export const sessionsRouter = createTRPCRouter({
 
           // Already generated (or queued earlier in this same run)?
           const key = `${template.id}|${startTime.getTime()}`;
-          if (!existingKeys.has(key)) {
-            existingKeys.add(key);
+          if (existingKeys.has(key)) continue;
+          existingKeys.add(key);
+
+          const cancelledId = cancelledIdByKey.get(key);
+          if (cancelledId) {
+            // Slot exists but was cancelled — bring it back rather than
+            // inserting a duplicate row alongside it.
+            idsToRevive.push(cancelledId);
+          } else {
             sessionsToCreate.push({
               classTypeId: template.classTypeId,
               instructorId: template.instructorId,
@@ -330,9 +349,23 @@ export const sessionsRouter = createTRPCRouter({
         });
       }
 
+      // Restore slots whose only existing session had been cancelled.
+      if (idsToRevive.length > 0) {
+        await ctx.db.classSession.updateMany({
+          where: { id: { in: idsToRevive } },
+          data: { isCancelled: false },
+        });
+      }
+
+      const total = sessionsToCreate.length + idsToRevive.length;
       return {
-        created: sessionsToCreate.length,
-        message: `Created ${sessionsToCreate.length} sessions from templates`,
+        created: total,
+        added: sessionsToCreate.length,
+        restored: idsToRevive.length,
+        message:
+          idsToRevive.length > 0
+            ? `Added ${sessionsToCreate.length} and restored ${idsToRevive.length} cancelled sessions`
+            : `Created ${sessionsToCreate.length} sessions from templates`,
       };
     }),
 });
