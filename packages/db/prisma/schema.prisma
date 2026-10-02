@@ -206,6 +206,10 @@ enum MembershipPlanType {
   MONTHLY_ADULT_6MO
   MONTHLY_ADULT_3MO
   MONTHLY_ADULT
+  // Live adult products sold through the older payment links
+  MONTHLY_ADULT_240
+  MONTHLY_ADULT_NEW_1YR
+  MONTHLY_ADULT_6MO_210
   // Monthly - Student
   MONTHLY_STUDENT_1YR
   MONTHLY_STUDENT_6MO

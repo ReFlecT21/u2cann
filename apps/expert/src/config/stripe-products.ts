@@ -316,7 +316,8 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
   prod_UoHX4DUjGbsj3G: {
     planType: "MONTHLY_ADULT",
     category: "MONTHLY_SUBSCRIPTION",
-    name: "Adult Membership New (Monthly)",
+    // $190 — the plan row previously claimed $223, which matched nobody.
+    name: "new adult",
     sessionsIncluded: null,
     commitmentMonths: 1,
     priceInCents: 19000,
@@ -379,6 +380,34 @@ export const STRIPE_PRODUCT_TO_PLAN: Record<string, StripePlanConfig> = {
     sessionsIncluded: null,
     commitmentMonths: 12,
     priceInCents: 12800,
+  },
+  // Live adult products sold through the older payment links. These were
+  // unmapped, so members who bought them got no membership at all and had to
+  // be added by hand — which is how several ended up on the wrong plan with
+  // no subscription linked.
+  prod_UhngPFWpkO4Fno: {
+    planType: "MONTHLY_ADULT_240",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "Adult monthly",
+    sessionsIncluded: null,
+    commitmentMonths: 1,
+    priceInCents: 24000,
+  },
+  prod_UCvAZgtvPqexvt: {
+    planType: "MONTHLY_ADULT_NEW_1YR",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "12 months adult new",
+    sessionsIncluded: null,
+    commitmentMonths: 12,
+    priceInCents: 19000,
+  },
+  prod_Uu1HpsQ1B2RIb0: {
+    planType: "MONTHLY_ADULT_6MO_210",
+    category: "MONTHLY_SUBSCRIPTION",
+    name: "6 months adult",
+    sessionsIncluded: null,
+    commitmentMonths: 6,
+    priceInCents: 21000,
   },
   // "Students monthly" — $168/mo, no commitment.
   prod_UmmjiYWgwtWOkt: {
