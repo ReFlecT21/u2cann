@@ -24,7 +24,8 @@ import {
   SelectValue,
 } from "@adh/ui/ui/select";
 import { Skeleton } from "@adh/ui/ui/skeleton";
-import { Users, UserCheck, Shield, Dumbbell, CreditCard, Search, UserPlus, Camera } from "lucide-react";
+import { Users, UserCheck, Shield, Dumbbell, CreditCard, Search, UserPlus, Camera, PauseCircle, PlayCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { AdminGuard } from "../../components/AdminGuard";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { FaceManageDialog } from "./FaceManageDialog";
@@ -72,6 +73,32 @@ export default function UsersPage() {
   const { data: users, isLoading } = api.gym.users.getAll.useQuery({
     search: search || undefined,
     role: roleFilter !== "all" ? (roleFilter as "admin" | "coach" | "trainee") : undefined,
+  });
+
+  const utils = api.useUtils();
+  const [pendingMembershipId, setPendingMembershipId] = useState<string | null>(null);
+
+  const refreshMembers = () => {
+    void utils.gym.users.getAll.invalidate();
+    void utils.gym.users.getStats.invalidate();
+  };
+
+  const pauseMembership = api.gym.users.pauseMembership.useMutation({
+    onSuccess: (res) => {
+      toast.success(`Membership paused — Stripe: ${res.stripe}`);
+      refreshMembers();
+    },
+    onError: (error) => toast.error(error.message || "Failed to pause membership"),
+    onSettled: () => setPendingMembershipId(null),
+  });
+
+  const resumeMembership = api.gym.users.resumeMembership.useMutation({
+    onSuccess: (res) => {
+      toast.success(`Membership resumed — Stripe: ${res.stripe}`);
+      refreshMembers();
+    },
+    onError: (error) => toast.error(error.message || "Failed to resume membership"),
+    onSettled: () => setPendingMembershipId(null),
   });
 
   const { data: stats } = api.gym.users.getStats.useQuery();
@@ -291,19 +318,61 @@ export default function UsersPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              setFaceTarget({
-                                id: user.id,
-                                name: user.name,
-                                email: user.email,
-                              })
-                            }
-                          >
-                            <Camera className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            {user.membership &&
+                            (user.membership.status === "ACTIVE" ||
+                              user.membership.status === "PAUSED") ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title={
+                                  user.membership.status === "PAUSED"
+                                    ? "Resume membership (restarts Stripe billing and door access)"
+                                    : "Pause membership (stops Stripe billing and door access)"
+                                }
+                                disabled={pendingMembershipId === user.membership.id}
+                                onClick={() => {
+                                  const m = user.membership;
+                                  if (!m) return;
+                                  const paused = m.status === "PAUSED";
+                                  const label = user.name ?? user.email;
+                                  if (
+                                    !window.confirm(
+                                      paused
+                                        ? `Resume ${label}'s membership? Stripe billing restarts and door access is restored.`
+                                        : `Pause ${label}'s membership? Stripe stops charging them and the door will deny entry until you resume.`,
+                                    )
+                                  )
+                                    return;
+                                  setPendingMembershipId(m.id);
+                                  if (paused) resumeMembership.mutate({ membershipId: m.id });
+                                  else pauseMembership.mutate({ membershipId: m.id });
+                                }}
+                              >
+                                {pendingMembershipId === user.membership.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : user.membership.status === "PAUSED" ? (
+                                  <PlayCircle className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <PauseCircle className="h-4 w-4 text-yellow-500" />
+                                )}
+                              </Button>
+                            ) : null}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Manage face enrollment"
+                              onClick={() =>
+                                setFaceTarget({
+                                  id: user.id,
+                                  name: user.name,
+                                  email: user.email,
+                                })
+                              }
+                            >
+                              <Camera className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))

@@ -1,8 +1,16 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { clerkClient } from "@clerk/nextjs/server";
+import Stripe from "stripe";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { sendWelcomeEmail } from "~/server/services/emailService";
+import { reconcileUserAccessSafe } from "~/server/lib/accessReconciler";
+import { env } from "~/env";
+
+const stripe = env.STRIPE_SECRET_KEY ? new Stripe(env.STRIPE_SECRET_KEY) : null;
+
+/** Max consecutive pause allowed by the membership terms. */
+const MAX_PAUSE_MONTHS = 1;
 
 export const usersRouter = createTRPCRouter({
   // Get all membership plans for dropdown
@@ -370,5 +378,151 @@ export const usersRouter = createTRPCRouter({
       console.log("[createMember] Welcome email sent to:", input.email);
 
       return membership;
+    }),
+  /**
+   * Freeze a membership: stop Stripe collecting, and mark the membership
+   * PAUSED so the door denies entry (evaluateAccess treats PAUSED as denied).
+   * Both sides move together — pausing only in Stripe would leave the member
+   * walking in free, and only in the app would keep charging them.
+   */
+  pauseMembership: protectedProcedure
+    .input(
+      z.object({
+        membershipId: z.string(),
+        // Optional auto-resume date; capped at the terms' 1-month maximum.
+        resumesAt: z.date().optional(),
+        reason: z.string().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const currentUser = await ctx.db.user.findUnique({
+        where: { id: ctx.auth.userId },
+        select: { role: true },
+      });
+      if (currentUser?.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only admins can pause memberships" });
+      }
+
+      const membership = await ctx.db.userMembership.findUnique({
+        where: { id: input.membershipId },
+        include: { user: { select: { id: true, name: true } } },
+      });
+      if (!membership) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Membership not found" });
+      }
+      if (membership.status === "PAUSED") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "This membership is already paused" });
+      }
+      if (membership.status !== "ACTIVE") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Only active memberships can be paused (this one is ${membership.status})`,
+        });
+      }
+
+      const maxResume = new Date();
+      maxResume.setMonth(maxResume.getMonth() + MAX_PAUSE_MONTHS);
+      if (input.resumesAt && input.resumesAt > maxResume) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Memberships may be paused for at most ${MAX_PAUSE_MONTHS} month`,
+        });
+      }
+
+      // Stripe first: if it fails we leave everything untouched rather than
+      // pausing access while the card keeps getting charged.
+      let stripeNote = "no linked subscription";
+      if (membership.stripeSubscriptionId) {
+        if (!stripe) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Stripe is not configured" });
+        }
+        try {
+          await stripe.subscriptions.update(membership.stripeSubscriptionId, {
+            pause_collection: {
+              behavior: "void",
+              ...(input.resumesAt
+                ? { resumes_at: Math.floor(input.resumesAt.getTime() / 1000) }
+                : {}),
+            },
+          });
+          stripeNote = "collection paused";
+        } catch (err) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Could not pause the Stripe subscription: ${
+              err instanceof Error ? err.message : "unknown error"
+            }`,
+          });
+        }
+      }
+
+      const updated = await ctx.db.userMembership.update({
+        where: { id: membership.id },
+        data: { status: "PAUSED" },
+      });
+
+      // Push the door state in line with the new status.
+      void reconcileUserAccessSafe(membership.userId);
+
+      console.log(
+        `[pauseMembership] ${membership.user.name ?? membership.userId} paused (${stripeNote})` +
+          (input.reason ? ` — ${input.reason}` : ""),
+      );
+      return { membership: updated, stripe: stripeNote };
+    }),
+
+  /** Undo pauseMembership: resume Stripe collection and reactivate access. */
+  resumeMembership: protectedProcedure
+    .input(z.object({ membershipId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const currentUser = await ctx.db.user.findUnique({
+        where: { id: ctx.auth.userId },
+        select: { role: true },
+      });
+      if (currentUser?.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only admins can resume memberships" });
+      }
+
+      const membership = await ctx.db.userMembership.findUnique({
+        where: { id: input.membershipId },
+        include: { user: { select: { id: true, name: true } } },
+      });
+      if (!membership) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Membership not found" });
+      }
+      if (membership.status !== "PAUSED") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "This membership is not paused" });
+      }
+
+      let stripeNote = "no linked subscription";
+      if (membership.stripeSubscriptionId) {
+        if (!stripe) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Stripe is not configured" });
+        }
+        try {
+          // null clears pause_collection and billing resumes next cycle.
+          await stripe.subscriptions.update(membership.stripeSubscriptionId, {
+            pause_collection: null,
+          });
+          stripeNote = "collection resumed";
+        } catch (err) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Could not resume the Stripe subscription: ${
+              err instanceof Error ? err.message : "unknown error"
+            }`,
+          });
+        }
+      }
+
+      const updated = await ctx.db.userMembership.update({
+        where: { id: membership.id },
+        data: { status: "ACTIVE" },
+      });
+
+      void reconcileUserAccessSafe(membership.userId);
+
+      console.log(`[resumeMembership] ${membership.user.name ?? membership.userId} resumed (${stripeNote})`);
+      return { membership: updated, stripe: stripeNote };
     }),
 });
